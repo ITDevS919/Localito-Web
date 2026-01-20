@@ -328,18 +328,18 @@ export default function Home() {
               <h4 className="text-base font-bold">Legal</h4>
               <ul className="space-y-2 text-sm text-primary-foreground/70">
                 <li>
-                  <Link href="/privacy" className="hover:text-primary-foreground transition-colors">
-                    Privacy
+                <Link href="/privacy" className="hover:text-primary-foreground transition-colors">
+                    Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-primary-foreground transition-colors">
-                    Terms
+                  <Link href="/terms/consumers" className="hover:text-primary-foreground transition-colors">
+                    Consumer Terms
                   </Link>
                 </li>
                 <li>
-                  <Link href="/cookies" className="hover:text-primary-foreground transition-colors">
-                    Cookies
+                  <Link href="/terms/retailers" className="hover:text-primary-foreground transition-colors">
+                    Retailer Terms
                   </Link>
                 </li>
               </ul>

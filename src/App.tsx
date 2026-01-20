@@ -45,6 +45,11 @@ import UserPointsPage from "@/pages/user-points";
 import MessagesPage from "@/pages/messages";
 import RetailerMessagesPage  from "@/pages/retailer-messages";
 import { SupportChat } from "@/components/chat/SupportChat";
+import PrivacyPage from "@/pages/privacy";
+import TermsConsumersPage from "@/pages/terms-consumers";
+import TermsRetailersPage from "@/pages/terms-retailers";
+
+
 
 function Router() {
   return (
@@ -109,6 +114,11 @@ function Router() {
 
       {/* Messages */}
       <Route path="/messages" component={MessagesPage} />
+
+      {/* Legal Routes */}
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/terms/consumers" component={TermsConsumersPage} />
+      <Route path="/terms/retailers" component={TermsRetailersPage} />
 
       <Route component={NotFound} />
     </Switch>
