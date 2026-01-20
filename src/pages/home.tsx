@@ -232,31 +232,88 @@ export default function Home() {
         </section>
 
         {/* Call to Action for Retailers */}
-        <section className="py-20">
+        <section className="py-20 bg-gradient-to-b from-background to-secondary/20">
           <div className="container mx-auto px-4">
-            <div className="overflow-hidden rounded-3xl bg-primary text-primary-foreground shadow-2xl">
-              <div className="grid gap-8 px-8 py-12 md:grid-cols-2 md:px-16 md:py-20 items-center">
-                <div className="space-y-6">
-                  <h2 className="font-heading text-3xl font-bold md:text-4xl">Are you a local independent business?</h2>
-                  <p className="text-lg text-primary-foreground/90">
-                    Join Localito today and reach thousands of local customers. Set up your store in minutes and start selling with 0% listing fees.
+            <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl border border-primary/20">
+              <div className="grid gap-8 px-8 py-12 md:grid-cols-5 md:px-16 md:py-20 items-center">
+                <div className="space-y-4 md:col-span-3">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 text-primary-foreground/90 text-sm font-medium">
+                    <Store className="h-4 w-4" />
+                    For Retailers
+                  </div>
+                  <h2 className="font-heading text-3xl font-bold md:text-4xl lg:text-5xl leading-tight">
+                    Grow Your Local Business with Localito
+                  </h2>
+                  <p className="text-lg text-primary-foreground/90 leading-relaxed">
+                    Join Manchester's premier marketplace for independent retailers. Reach thousands of local customers, increase your online presence, and boost sales—all with transparent pricing and dedicated support.
                   </p>
-                  <div className="flex flex-wrap gap-4">
-                    <Button size="lg" variant="secondary" className="text-primary font-bold">
-                      Start Selling
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
+                        <ShieldCheck className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">0% Listing Fees</p>
+                        <p className="text-xs text-primary-foreground/70">No upfront costs</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
+                        <Store className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">Quick Setup</p>
+                        <p className="text-xs text-primary-foreground/70">Get started in minutes</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
+                        <Leaf className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">Local Focus</p>
+                        <p className="text-xs text-primary-foreground/70">Connect with your community</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
+                        <ArrowRight className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">Easy Payments</p>
+                        <p className="text-xs text-primary-foreground/70">Secure & reliable</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    <Button size="lg" variant="secondary" className="text-primary font-bold shadow-lg hover:shadow-xl transition-shadow" asChild>
+                      <Link href="/signup/retailer">
+                        Get Started Free
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+
                     </Button>
-                    <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                      Learn More
+                    <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground/50 transition-colors" asChild>
+                      <Link href="/terms/retailers">
+                        View Terms
+                      </Link>
                     </Button>
                   </div>
                 </div>
-                <div className="relative hidden md:block h-full min-h-[300px]">
-                   {/* Abstract pattern or illustration placeholder */}
-                   <div className="absolute inset-0 bg-white/10 rounded-2xl transform rotate-3"></div>
+                <div className="relative hidden md:block h-full min-h-[250px] md:col-span-2">
+                   {/* Enhanced visual design */}
+                   <div className="absolute inset-0 bg-white/10 rounded-2xl transform rotate-3 blur-sm"></div>
                    <div className="absolute inset-0 bg-white/5 rounded-2xl transform -rotate-2"></div>
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <Store className="h-32 w-32 text-white/20" />
+                   <div className="absolute inset-0 flex items-center justify-center p-4">
+                     <img 
+                       src="/store.png" 
+                       alt="Local independent retail shop illustration" 
+                       className="w-full h-full max-h-[250px] object-contain rounded-2xl"
+                     />
                    </div>
+                   {/* Decorative elements */}
+                   <div className="absolute top-2 right-2 w-12 h-12 rounded-full bg-white/5 border border-white/10"></div>
+                   <div className="absolute bottom-4 left-4 w-8 h-8 rounded-full bg-white/5 border border-white/10"></div>
                 </div>
               </div>
             </div>
@@ -328,7 +385,7 @@ export default function Home() {
               <h4 className="text-base font-bold">Legal</h4>
               <ul className="space-y-2 text-sm text-primary-foreground/70">
                 <li>
-                <Link href="/privacy" className="hover:text-primary-foreground transition-colors">
+                  <Link href="/privacy" className="hover:text-primary-foreground transition-colors">
                     Privacy Policy
                   </Link>
                 </li>
