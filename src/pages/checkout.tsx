@@ -46,6 +46,13 @@ interface OrderGroup {
   subtotal: number;
 }
 
+interface ServiceGroup {
+  retailer_id: string;
+  retailer_name: string;
+  items: CartServiceItem[];
+  subtotal: number;
+}
+
 interface UserPoints {
   balance: number;
   totalEarned: number;
@@ -229,7 +236,7 @@ export default function CheckoutPage() {
     }
 
     return groups;
-  }, [] as OrderGroup[]);
+  }, [] as ServiceGroup[]);
 
   // Calculate service subtotal
   const serviceSubtotal = serviceItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -238,10 +245,10 @@ export default function CheckoutPage() {
   // Get retailer IDs for services (for backward compatibility, check if all services are from one retailer)
   const uniqueServiceRetailers = new Set(serviceItems.map(item => item.retailer_id));
   const isSingleRetailerServices = uniqueServiceRetailers.size === 1;
-  const serviceRetailerId = isSingleRetailerServices ? serviceItems[0]?.retailer_id : "";
-  const maxDuration = serviceItems.length > 0 
-    ? Math.max(...serviceItems.map(item => item.duration_minutes))
-    : 60;
+  // const serviceRetailerId = isSingleRetailerServices ? serviceItems[0]?.retailer_id : "";
+  // const maxDuration = serviceItems.length > 0 
+  //   ? Math.max(...serviceItems.map(item => item.duration_minutes))
+  //   : 60;
   const discountAmount = appliedDiscount?.amount || 0;
   const pointsDiscount = pointsToRedeem || 0;
   const total = Math.max(0, subtotal - discountAmount - pointsDiscount);

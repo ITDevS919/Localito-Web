@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AdminDashboardLayout } from "@/components/layout/AdminDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, Users, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Package, Users, AlertCircle, CheckCircle2, Wrench } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { Link } from "wouter";
 
@@ -25,26 +25,40 @@ interface PendingProduct {
   createdAt?: string;
 }
 
+interface PendingService {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  retailer_name?: string;
+  created_at: string;
+}
+
 export default function AdminDashboard() {
   useRequireRole("admin", "/admin");
   const [pendingRetailers, setPendingRetailers] = useState<PendingRetailer[]>([]);
   const [pendingProducts, setPendingProducts] = useState<PendingProduct[]>([]);
+  const [pendingServices, setPendingServices] = useState<PendingService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [retRes, prodRes] = await Promise.all([
+      const [retRes, prodRes, servRes] = await Promise.all([
         fetch(`${API_BASE_URL}/retailers/pending`, { credentials: "include" }),
         fetch(`${API_BASE_URL}/products/pending`, { credentials: "include" }),
+        fetch(`${API_BASE_URL}/services/pending`, { credentials: "include" }),
       ]);
       const retData = await retRes.json();
       const prodData = await prodRes.json();
+      const servData = await servRes.json();
       if (!retRes.ok || !retData.success) throw new Error(retData.message || "Retailers load failed");
       if (!prodRes.ok || !prodData.success) throw new Error(prodData.message || "Products load failed");
+      if (!servRes.ok || !servData.success) throw new Error(servData.message || "Services load failed");
       setPendingRetailers(retData.data);
       setPendingProducts(prodData.data);
+      setPendingServices(servData.data || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -60,7 +74,7 @@ export default function AdminDashboard() {
     <AdminDashboardLayout>
       <div className="space-y-6">
         {/* Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending Products</CardTitle>
@@ -70,6 +84,24 @@ export default function AdminDashboard() {
               <div className="text-2xl font-bold">{pendingProducts.length}</div>
               <p className="text-xs text-muted-foreground">Awaiting approval</p>
               {pendingProducts.length > 0 && (
+                <Link href="/admin/products">
+                  <Button variant="link" className="p-0 h-auto mt-2">
+                    View all →
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Services</CardTitle>
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingServices.length}</div>
+              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+              {pendingServices.length > 0 && (
                 <Link href="/admin/products">
                   <Button variant="link" className="p-0 h-auto mt-2">
                     View all →
@@ -115,7 +147,7 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {!loading && !error && pendingProducts.length === 0 && pendingRetailers.length === 0 && (
+        {!loading && !error && pendingProducts.length === 0 && pendingRetailers.length === 0 && pendingServices.length === 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-12">
@@ -127,8 +159,8 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {!loading && !error && (pendingProducts.length > 0 || pendingRetailers.length > 0) && (
-          <div className="grid gap-6 lg:grid-cols-2">
+        {!loading && !error && (pendingProducts.length > 0 || pendingRetailers.length > 0 || pendingServices.length > 0) && (
+          <div className="grid gap-6 lg:grid-cols-3">
             {pendingProducts.length > 0 && (
               <Card>
                 <CardHeader>
@@ -149,6 +181,33 @@ export default function AdminDashboard() {
                     <Link href="/admin/products">
                       <Button variant="outline" className="w-full">
                         View all {pendingProducts.length} products →
+                      </Button>
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {pendingServices.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Pending Services</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {pendingServices.slice(0, 5).map((s) => (
+                    <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                      <div className="flex-1">
+                        <div className="font-semibold">{s.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {s.category} • £{Number(s.price || 0).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {pendingServices.length > 5 && (
+                    <Link href="/admin/products">
+                      <Button variant="outline" className="w-full">
+                        View all {pendingServices.length} services →
                       </Button>
                     </Link>
                   )}
