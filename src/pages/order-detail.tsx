@@ -4,9 +4,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Package, MapPin, Calendar, CreditCard, Tag, Coins, QrCode, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, Package, MapPin, Calendar, CreditCard, Tag, Coins, QrCode, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -164,6 +165,31 @@ export default function OrderDetailPage() {
     }
   };
 
+  const retryPayment = async () => {
+    if (!orderId) return;
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/retry-payment`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to retry payment");
+      }
+      // Redirect to checkout
+      if (data.data.checkoutUrl) {
+        window.location.href = data.data.checkoutUrl;
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to retry payment",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Calculate subtotal (total + discounts)
   const subtotal = order
     ? Number(order.total) + (Number(order.discount_amount) || 0) + (Number(order.points_used) || 0)
@@ -200,6 +226,7 @@ export default function OrderDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+      awaiting_payment: { variant: "destructive", label: "Awaiting Payment" },
       pending: { variant: "outline", label: "Pending" },
       processing: { variant: "default", label: "Processing" },
       shipped: { variant: "default", label: "Shipped" },
@@ -260,6 +287,25 @@ export default function OrderDetailPage() {
             </div>
             {getStatusBadge(order.status)}
           </div>
+          
+          {/* Show payment required message for orders awaiting payment */}
+          {order.status === 'awaiting_payment' && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>
+                  Payment is required to confirm this order. Your order will be cancelled if payment is not completed within 15 minutes.
+                </span>
+                <Button 
+                  onClick={retryPayment} 
+                  className="ml-4"
+                  variant="outline"
+                >
+                  Complete Payment
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
