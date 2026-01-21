@@ -290,7 +290,7 @@ export function CreateProductModal({
           name: formData.name.trim(),
           description: formData.description.trim(),
           price: parseFloat(formData.price),
-          stock: formData.syncFromEpos ? 0 : parseInt(formData.stock), // Use 0 as placeholder when syncing
+          stock: formData.syncFromEpos ? (parseInt(formData.stock) || 0) : parseInt(formData.stock), // Use synced stock value or 0 as fallback
           category: formData.category,
           images,
           syncFromEpos: formData.syncFromEpos,
