@@ -41,7 +41,7 @@ export interface Message {
     text: string;
     timestamp: Date;
     read: boolean;
-    type: "buyer-seller" | "support";
+    type: "buyer-seller" | "support" | "admin_initiated";
   }
   
   export interface ChatRoom {
@@ -53,7 +53,7 @@ export interface Message {
     lastMessage?: string;
     lastMessageTime?: Date;
     unreadCount: { [userId: string]: number };
-    type: "buyer-seller" | "support";
+    type: "buyer-seller" | "support" | "admin_initiated";
     createdAt: Date;
   }
   
@@ -67,7 +67,7 @@ export interface Message {
     userName2: string,
     role1: string,
     role2: string,
-    type: "buyer-seller" | "support" = "buyer-seller"
+    type: "buyer-seller" | "support" | "admin_initiated" = "buyer-seller"
   ): Promise<string> {
     await ensureAuth();
   
@@ -170,7 +170,7 @@ export interface Message {
     receiverId: string,
     receiverName: string,
     text: string,
-    type: "buyer-seller" | "support" = "buyer-seller"
+    type: "buyer-seller" | "support" | "admin_initiated" = "buyer-seller"
   ): Promise<void> {
     await ensureAuth();
   

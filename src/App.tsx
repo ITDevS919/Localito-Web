@@ -49,8 +49,6 @@ import PrivacyPage from "@/pages/privacy";
 import TermsConsumersPage from "@/pages/terms-consumers";
 import TermsRetailersPage from "@/pages/terms-retailers";
 
-
-
 function Router() {
   return (
     <Switch>
@@ -115,7 +113,7 @@ function Router() {
       {/* Messages */}
       <Route path="/messages" component={MessagesPage} />
 
-      {/* Legal Routes */}
+      {/* Legal */}
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/terms/consumers" component={TermsConsumersPage} />
       <Route path="/terms/retailers" component={TermsRetailersPage} />

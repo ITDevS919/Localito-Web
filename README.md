@@ -16,7 +16,7 @@ Start the development server:
 npm run dev
 ```
 
-The app will be available at `http://localhost:3000`. API requests are configured to go to `http://localhost:5000/api` (make sure the backend server is running).
+The app will be available at `http://localhost:5173`. API requests are configured to go to `http://localhost:5000/api` (make sure the backend server is running).
 
 ## Build
 

@@ -6,7 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, Loader2, HelpCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MessageCircle, Send, Loader2, Plus } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { initializeFirebaseAuth } from "@/lib/firebase";
@@ -15,9 +30,20 @@ import {
   subscribeToMessages,
   sendMessage,
   markMessagesAsRead,
+  getOrCreateChatRoom,
   type Message,
   type ChatRoom,
 } from "@/services/chatService";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+interface Retailer {
+  id: string;
+  business_name: string;
+  user_id: string;
+  email: string;
+  username: string;
+}
 
 export default function AdminMessagesPage() {
   useRequireRole("admin", "/admin");
@@ -29,6 +55,11 @@ export default function AdminMessagesPage() {
   const [sending, setSending] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [newConversationOpen, setNewConversationOpen] = useState(false);
+  const [retailers, setRetailers] = useState<Retailer[]>([]);
+  const [selectedRetailerId, setSelectedRetailerId] = useState<string>("");
+  const [loadingRetailers, setLoadingRetailers] = useState(false);
+  const [creatingRoom, setCreatingRoom] = useState(false);
 
   // Initialize Firebase auth on mount
   useEffect(() => {
@@ -47,17 +78,72 @@ export default function AdminMessagesPage() {
   useEffect(() => {
     if (!user || initializing) return;
 
-    console.log("Subscribing to support chat rooms for admin:", user.id);
+    console.log("Subscribing to chat rooms for admin:", user.id);
 
     const unsubscribe = subscribeToUserChatRooms(user.id, (updatedRooms) => {
-      // Filter to only show support type rooms
-      const supportRooms = updatedRooms.filter((room) => room.type === "support");
-      console.log(`Received ${supportRooms.length} support rooms`);
-      setRooms(supportRooms);
+      // Show all room types (support, admin_initiated, buyer-seller)
+      console.log(`Received ${updatedRooms.length} rooms`);
+      setRooms(updatedRooms);
     });
 
     return () => unsubscribe();
   }, [user, initializing]);
+
+  useEffect(() => {
+    if (newConversationOpen && retailers.length === 0) {
+      loadRetailers();
+    }
+  }, [newConversationOpen]);
+
+  const loadRetailers = async () => {
+    setLoadingRetailers(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/retailers?status=approved&limit=100`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRetailers(data.data.retailers || []);
+      }
+    } catch (error) {
+      console.error("Failed to load retailers:", error);
+    } finally {
+      setLoadingRetailers(false);
+    }
+  };
+
+  const handleCreateConversation = async () => {
+    if (!selectedRetailerId || !user || creatingRoom) return;
+
+    const retailer = retailers.find((r) => r.id === selectedRetailerId);
+    if (!retailer) return;
+
+    setCreatingRoom(true);
+    try {
+      const roomId = await getOrCreateChatRoom(
+        user.id,
+        retailer.user_id,
+        user.username,
+        retailer.business_name,
+        user.role || "admin",
+        "retailer",
+        "admin_initiated"
+      );
+
+      // Find the room in the current rooms list
+      const newRoom = rooms.find((r) => r.id === roomId);
+      if (newRoom) {
+        setSelectedRoom(newRoom);
+      }
+
+      setNewConversationOpen(false);
+      setSelectedRetailerId("");
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedRoom || !user) return;
@@ -142,9 +228,15 @@ export default function AdminMessagesPage() {
   return (
     <AdminDashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Support Messages</h1>
-          <p className="text-muted-foreground">Chat with customers and retailers who need support</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Messages</h1>
+            <p className="text-muted-foreground">Chat with customers and retailers</p>
+          </div>
+          <Button onClick={() => setNewConversationOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Conversation
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ height: 'calc(100vh - 250px)' }}>
@@ -152,8 +244,8 @@ export default function AdminMessagesPage() {
           <Card className="lg:col-span-1 flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5" />
-                Support Conversations
+                <MessageCircle className="h-5 w-5" />
+                Conversations
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-hidden">
@@ -161,7 +253,7 @@ export default function AdminMessagesPage() {
                 {rooms.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">
                     <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No support conversations yet</p>
+                    <p>No conversations yet</p>
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -232,7 +324,11 @@ export default function AdminMessagesPage() {
                           {getOtherParticipantRole(selectedRoom) || "User"}
                         </Badge>
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">Support conversation</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedRoom.type === "support" && "Support conversation"}
+                        {selectedRoom.type === "admin_initiated" && "Admin-initiated conversation"}
+                        {selectedRoom.type === "buyer-seller" && "Buyer-seller conversation"}
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
@@ -314,6 +410,60 @@ export default function AdminMessagesPage() {
           </Card>
         </div>
       </div>
+
+      {/* New Conversation Dialog */}
+      <Dialog open={newConversationOpen} onOpenChange={setNewConversationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start New Conversation</DialogTitle>
+            <DialogDescription>
+              Select a retailer to start a new conversation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {loadingRetailers ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              <Select value={selectedRetailerId} onValueChange={setSelectedRetailerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a retailer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {retailers.map((retailer) => (
+                    <SelectItem key={retailer.id} value={retailer.id}>
+                      {retailer.business_name} ({retailer.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setNewConversationOpen(false);
+                setSelectedRetailerId("");
+              }}
+              disabled={creatingRoom}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateConversation} disabled={!selectedRetailerId || creatingRoom}>
+              {creatingRoom ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Start Conversation"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminDashboardLayout>
   );
 }
