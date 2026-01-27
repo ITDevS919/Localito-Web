@@ -46,8 +46,7 @@ import MessagesPage from "@/pages/messages";
 import BusinessMessagesPage from "@/pages/business-messages";
 import { SupportChat } from "@/components/chat/SupportChat";
 import PrivacyPage from "@/pages/privacy";
-import TermsConsumersPage from "@/pages/terms-consumers";
-import TermsBusinessesPage from "@/pages/terms-businesses";
+import TermsPage from "@/pages/terms";
 
 function Router() {
   return (
@@ -115,8 +114,10 @@ function Router() {
 
       {/* Legal */}
       <Route path="/privacy" component={PrivacyPage} />
-      <Route path="/terms/consumers" component={TermsConsumersPage} />
-      <Route path="/terms/businesses" component={TermsBusinessesPage} />
+      <Route path="/terms" component={TermsPage} />
+      {/* Backwards-compatible routes pointing to unified terms */}
+      <Route path="/terms/consumers" component={TermsPage} />
+      <Route path="/terms/businesses" component={TermsPage} />
 
       <Route component={NotFound} />
     </Switch>

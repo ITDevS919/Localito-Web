@@ -303,7 +303,7 @@ export default function Home() {
 
                     </Button>
                     <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground/50 transition-colors" asChild>
-                      <Link href="/terms/businesses">
+                      <Link href="/terms">
                         View Terms
                       </Link>
                     </Button>
@@ -399,13 +399,8 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms/consumers" className="hover:text-primary-foreground transition-colors">
-                    Consumer Terms
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms/businesses" className="hover:text-primary-foreground transition-colors">
-                    Business Terms
+                  <Link href="/terms" className="hover:text-primary-foreground transition-colors">
+                    Terms & Conditions
                   </Link>
                 </li>
               </ul>
