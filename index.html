@@ -1,23 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
+    <!-- Basic HTML meta -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Localito – Local Marketplace for Businesses & Customers</title>
+    <meta
+      name="description"
+      content="Localito connects customers with nearby businesses, offering same‑day pickup, local deals, and an easy way for businesses to manage products, orders, and payments."
+    />
+    <meta
+      name="keywords"
+      content="local marketplace, localito, local shopping, same-day pickup, local businesses, online marketplace"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="index,follow" />
+    <meta name="author" content="Localito" />
 
-    <meta property="og:title" content="Localito - Manchester's Indie Marketplace" />
-    <meta property="og:description" content="Support your local business. Buy now and pick up in store in minutes." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/attached_assets/Landing_Page_1764930187871.jpg" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@replit" />
-    <meta name="twitter:title" content="Localito - Manchester's Indie Marketplace" />
-    <meta name="twitter:description" content="Support your local business. Buy now and pick up in store in minutes." />
-    <meta name="twitter:image" content="/attached_assets/Landing_Page_1764930187871.jpg" />
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://localito.com/" />
 
+    <!-- Favicon / icons -->
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- Open Graph (Facebook, LinkedIn, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://localito.com/" />
+    <meta property="og:title" content="Localito – Local Marketplace for Businesses & Customers" />
+    <meta
+      property="og:description"
+      content="Discover and buy from local Businesses, manage your store online, and offer same‑day pickup with Localito."
+    />
+    <meta property="og:image" content="https://localito.com/store-og-image.png" />
+    <meta property="og:site_name" content="Localito" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Localito – Local Marketplace for Businesses & Customers" />
+    <meta
+      name="twitter:description"
+      content="Localito helps customers find nearby shops and lets Businesses manage products, orders, and payments online."
+    />
+    <meta name="twitter:image" content="https://localito.com/store-og-image.png" />
+    <meta name="twitter:site" content="@your_twitter_handle" />
+
+    <!-- Theme color (optional PWA/UX) -->
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- Structured data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Localito",
+        "url": "https://localito.com/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://localito.com/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+
+    <!-- Optional: Organization structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Localito",
+        "url": "https://localito.com/",
+        "logo": "https://localito.com/logo.png",
+        "sameAs": [
+          "https://www.facebook.com/yourpage",
+          "https://www.instagram.com/yourprofile",
+          "https://www.linkedin.com/company/yourcompany"
+        ]
+      }
+    </script>
+
+    <!-- Vite / React entry point (keep as in your original file) -->
+    <meta name="generator" content="Vite + React" />
   </head>
   <body>
     <div id="root"></div>
