@@ -30,9 +30,9 @@ export default function SignupCustomerPage() {
               </Link>
             </div>
             <div className="text-sm text-center text-muted-foreground">
-              Are you a retailer?{" "}
-              <Link href="/signup/retailer" className="text-primary hover:underline font-medium">
-                Retailer signup
+              Are you a business?{" "}
+              <Link href="/signup/business" className="text-primary hover:underline font-medium">
+                Business signup
               </Link>
             </div>
           </CardFooter>

@@ -55,7 +55,7 @@ export default function TermsBusinessesPage() {
                 </li>
                 <li>
                   These Terms form a binding contract between you and Localito
-                  in relation to your use of the Platform as a Retailer. We may
+                  in relation to your use of the Platform as a Business. We may
                   update these Terms from time to time; continued use of the
                   Platform following any changes constitutes your acceptance of
                   the updated Terms.
@@ -91,7 +91,7 @@ export default function TermsBusinessesPage() {
               <h2 className="text-xl font-heading font-semibold">4. Registration and Listing</h2>
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>
-                  You must register for a Retailer account through the Platform,
+                  You must register for a Business account through the Platform,
                   providing accurate and complete business information, such as
                   your trading name, address, contact details, and VAT number
                   (where applicable).
@@ -172,7 +172,7 @@ export default function TermsBusinessesPage() {
                 <li>
                   We may hold funds until order fulfilment is confirmed, in line
                   with our payout schedule. Details of payout timing and
-                  thresholds are provided in your Retailer dashboard or separate
+                  thresholds are provided in your Business dashboard or separate
                   onboarding materials.
                 </li>
               </ul>
@@ -250,7 +250,7 @@ export default function TermsBusinessesPage() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 To the fullest extent permitted by law, our total liability to
                 you in connection with these Terms and your use of the Platform
-                as a Retailer is limited to the total commission fees you have
+                as a Business is limited to the total commission fees you have
                 paid to Localito in the previous twelve (12) months.
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
@@ -267,7 +267,7 @@ export default function TermsBusinessesPage() {
               <h2 className="text-xl font-heading font-semibold">11. Termination</h2>
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>
-                  Either party may terminate the Retailer relationship by giving
+                  Either party may terminate the Business relationship by giving
                   at least 30 days&apos; written notice.
                 </li>
                 <li>
@@ -289,11 +289,11 @@ export default function TermsBusinessesPage() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 These Terms are governed by the laws of England and Wales. Any
                 disputes arising in connection with these Terms or your use of
-                the Platform as a Retailer will be subject to the exclusive
+                the Platform as a Business will be subject to the exclusive
                 jurisdiction of the courts of England and Wales.
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                If you have any questions about these Terms or your Retailer
+                If you have any questions about these Terms or your Business
                 account, please contact us at{" "}
                 <a href="mailto:hello@localito.com">hello@localito.com</a>.
                 These Terms may supplement any separate business agreement you

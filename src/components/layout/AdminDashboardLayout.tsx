@@ -19,7 +19,7 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
   const navItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Products", icon: Package },
-    { href: "/admin/retailers", label: "Retailers", icon: Users },
+    { href: "/admin/businesses", label: "Businesses", icon: Users },
     { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
     { href: "/admin/categories", label: "Categories", icon: FolderTree },
     { href: "/admin/reviews", label: "Reviews", icon: Star },
@@ -32,7 +32,7 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
   // Get page title based on current route
   const getPageTitle = () => {
     if (location === "/admin/products") return "Product Approvals";
-    if (location === "/admin/retailers") return "Retailer Approvals";
+    if (location === "/admin/businesses") return "Business Approvals";
     if (location === "/admin/orders") return "Order Management";
     if (location === "/admin/categories") return "Category Management";
     if (location === "/admin/reviews") return "Review Moderation";

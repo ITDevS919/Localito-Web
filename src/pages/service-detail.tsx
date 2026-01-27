@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Calendar, Clock, MapPin, MessageCircle, Star, StarHalf } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { startChatWithRetailer } from "@/utils/chatHelpers";
+import { startChatWithBusiness } from "@/utils/chatHelpers";
 import { useLocation } from "wouter";
 import {
   Dialog,
@@ -32,8 +32,10 @@ interface Service {
   max_participants: number;
   requires_staff: boolean;
   location_type: 'onsite' | 'customer_address' | 'online';
-  retailer_id: string;
-  retailer_name?: string;
+  business_id: string; // Formerly retailer_id
+  retailer_id?: string; // Legacy support
+  business_name?: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   reviewCount?: number;
   averageRating?: number;
 }
@@ -150,10 +152,10 @@ export default function ServiceDetailPage() {
       return;
     }
 
-    if (!service?.retailer_id) return;
+    if (!service?.business_id && !service?.retailer_id) return;
 
     try {
-      await startChatWithRetailer(service.retailer_id, user, setLocation);
+      await startChatWithBusiness(service.business_id || service.retailer_id || "", user, setLocation);
       toast({
         title: "Chat started",
         description: "You can now message the seller",
@@ -381,7 +383,7 @@ export default function ServiceDetailPage() {
               <div className="pt-4">
                 <h3 className="font-semibold mb-2">Service Provider</h3>
                 <p className="text-sm text-muted-foreground">
-                  {service.retailer_name || `Retailer ID: ${service.retailer_id}`}
+                  {service.business_name || service.retailer_name || `Business ID: ${service.business_id || service.retailer_id}`}
                 </p>
               </div>
             </div>

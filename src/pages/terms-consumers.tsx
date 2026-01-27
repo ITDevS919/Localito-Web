@@ -30,7 +30,7 @@ export default function TermsConsumersPage() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Welcome to Localito Marketplace (&quot;Localito&quot;, &quot;we&quot;, &quot;us&quot;,
                 &quot;our&quot;), a platform that connects you with local independent
-                retailers (&quot;Retailers&quot;) so you can browse products online, pay
+                businesses (&quot;Businesses&quot;) so you can browse products online, pay
                 securely, and collect your order in-store. By accessing or using
                 our website{" "}
                 <a href="http://www.localito.com" target="_blank" rel="noreferrer">
@@ -83,13 +83,13 @@ export default function TermsConsumersPage() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Localito operates as an intermediary marketplace. We provide the
                 Platform that enables you to discover and purchase goods from
-                Retailers. The contract for the sale of goods is{" "}
-                <span className="font-semibold">between you and the Retailer</span>; we do not sell
+                Businesses. The contract for the sale of goods is{" "}
+                <span className="font-semibold">between you and the Business</span>; we do not sell
                 goods ourselves.
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 We facilitate payments and provide certain customer support and
-                communication tools, but we are not responsible for the Retailer&apos;s
+                communication tools, but we are not responsible for the Business&apos;s
                 compliance with their legal obligations, including product
                 quality, description, or fulfilment, except where required by
                 law.
@@ -100,20 +100,20 @@ export default function TermsConsumersPage() {
               <h2 className="text-xl font-heading font-semibold">4. Ordering and Payment</h2>
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>
-                  You can browse listings from multiple Retailers and add items
+                  You can browse listings from multiple Businesses and add items
                   to your cart. When you place an order, you will be asked to
                   pay online through our payment provider. All prices are shown
                   in GBP and include VAT where applicable.
                 </li>
                 <li>
-                  Prices for goods are set by the Retailers. Localito charges a
-                  commission (typically between 5–8%) to the Retailer, which is
+                  Prices for goods are set by the Businesses. Localito charges a
+                  commission (typically between 5–8%) to the Business, which is
                   reflected in the overall pricing.
                 </li>
                 <li>
                   After placing an order, you will receive a confirmation email
                   with details of your purchase and collection information. The
-                  Retailer is responsible for confirming stock availability and
+                  Business is responsible for confirming stock availability and
                   preparing your order.
                 </li>
               </ul>
@@ -124,7 +124,7 @@ export default function TermsConsumersPage() {
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>
                   Orders are fulfilled via in-store pickup at the relevant
-                  Retailer&apos;s premises. Details of the pickup location and any
+                  Business&apos;s premises. Details of the pickup location and any
                   available time windows will be provided in your confirmation
                   email.
                 </li>
@@ -136,7 +136,7 @@ export default function TermsConsumersPage() {
                 <li>
                   As a general guideline, you should collect your order within{" "}
                   <span className="font-semibold">48 hours</span> of confirmation, unless otherwise
-                  stated by the Retailer. Failure to collect within a reasonable
+                  stated by the Business. Failure to collect within a reasonable
                   period may affect your entitlement to a refund, subject to
                   your statutory rights under the Consumer Contracts Regulations
                   2013 (&quot;CCR&quot;).
@@ -157,12 +157,12 @@ export default function TermsConsumersPage() {
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>
                   <span className="font-semibold">Right to cancel:</span> You can cancel for any
-                  reason within 14 days of collection by notifying the Retailer
+                  reason within 14 days of collection by notifying the Business
                   or Localito (for example, by email or using any cancellation
                   form provided).
                 </li>
                 <li>
-                  <span className="font-semibold">Returns:</span> You must return goods to the Retailer
+                  <span className="font-semibold">Returns:</span> You must return goods to the Business
                   within 14 days of notifying cancellation. Goods should be
                   unused and in a condition that allows for &quot;reasonable
                   inspection&quot; (for example, trying on clothing). Excessive use (for
@@ -174,7 +174,7 @@ export default function TermsConsumersPage() {
                   <span className="font-semibold">Refunds:</span> If you cancel within the cooling-off
                   period and return goods as required, you are entitled to a
                   full refund of the purchase price and any standard delivery
-                  charges (if applicable), within 14 days of the Retailer
+                  charges (if applicable), within 14 days of the Business
                   receiving the returned goods. Return postage or transport
                   costs are normally your responsibility unless goods are faulty
                   or misdescribed.
@@ -194,7 +194,7 @@ export default function TermsConsumersPage() {
                 </li>
               </ul>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                A model cancellation form may be provided by the Retailer or on
+                A model cancellation form may be provided by the Business or on
                 the Platform, for example: &quot;I hereby give notice that I cancel my
                 contract for the supply of [goods], ordered on [date] and
                 received (collected) on [pickup date]. Name, Address, Signature,
@@ -207,14 +207,14 @@ export default function TermsConsumersPage() {
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>Provide accurate and up-to-date information when ordering.</li>
                 <li>
-                  Comply with any additional terms or policies that a Retailer
+                  Comply with any additional terms or policies that a Business
                   may apply (for example, collection rules or returns
                   procedures), provided they do not conflict with your statutory
                   rights.
                 </li>
                 <li>
                   Use the Platform lawfully and not in any manner that is
-                  fraudulent, abusive, or likely to harm Localito, Retailers, or
+                  fraudulent, abusive, or likely to harm Localito, Businesses, or
                   other users.
                 </li>
               </ul>
@@ -223,10 +223,10 @@ export default function TermsConsumersPage() {
             <section className="space-y-3 mt-8">
               <h2 className="text-xl font-heading font-semibold">8. Liability</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                As the contract for goods is between you and the Retailer,
-                Retailers are responsible for the quality, safety, and
+                As the contract for goods is between you and the Business,
+                Businesses are responsible for the quality, safety, and
                 description of their products and for complying with consumer
-                law. Localito is not liable for the Retailer&apos;s failure to meet
+                law. Localito is not liable for the Business&apos;s failure to meet
                 those obligations, except where required by law.
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">

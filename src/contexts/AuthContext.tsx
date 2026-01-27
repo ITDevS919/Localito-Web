@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "wouter";
 
-export type UserRole = "customer" | "retailer" | "admin";
+export type UserRole = "customer" | "business" | "admin";
 
 export interface User {
   id: string;
@@ -11,7 +11,7 @@ export interface User {
   createdAt: string;
 }
 
-interface RetailerData {
+interface BusinessData {
   businessName: string;
   businessAddress?: string;
   postcode?: string;
@@ -19,15 +19,19 @@ interface RetailerData {
   phone?: string;
 }
 
+// Legacy support
+interface RetailerData extends BusinessData {}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, email: string, password: string, role: UserRole, retailerData?: RetailerData) => Promise<void>;
+  signup: (username: string, email: string, password: string, role: UserRole, businessData?: BusinessData) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isCustomer: boolean;
-  isRetailer: boolean;
+  isBusiness: boolean; // Formerly isRetailer
+  isRetailer?: boolean; // Legacy support
   isAdmin: boolean;
 }
 
@@ -83,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.data);
     
     // Redirect based on role
-    if (data.data.role === "retailer") {
-      setLocation("/retailer/dashboard");
+    if (data.data.role === "business") {
+      setLocation("/business/dashboard");
     } else if (data.data.role === "admin") {
       setLocation("/admin/dashboard");
     } else {
@@ -92,10 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (username: string, email: string, password: string, role: UserRole = "customer", retailerData?: RetailerData) => {
+  const signup = async (username: string, email: string, password: string, role: UserRole = "customer", businessData?: BusinessData) => {
     const body: any = { username, email, password, role };
-    if (role === "retailer" && retailerData) {
-      body.retailerData = retailerData;
+    if (role === "business" && businessData) {
+      body.businessData = businessData;
     }
 
     const response = await fetch(`${API_BASE_URL}/auth/signup`, {
@@ -116,8 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.data);
     
     // Redirect based on role
-    if (data.data.role === "retailer") {
-      setLocation("/retailer/dashboard");
+    if (data.data.role === "business") {
+      setLocation("/business/dashboard");
     } else if (data.data.role === "admin") {
       setLocation("/admin/dashboard");
     } else {
@@ -149,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user,
         isCustomer: user?.role === "customer",
-        isRetailer: user?.role === "retailer",
+        isBusiness: user?.role === "business",
         isAdmin: user?.role === "admin",
       }}
     >

@@ -26,7 +26,8 @@ interface PendingProduct {
   price: number;
   stock: number;
   images: string[];
-  retailer_name?: string;
+  business_name?: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   created_at: string;
 }
 
@@ -41,7 +42,8 @@ interface PendingService {
   maxParticipants: number;
   locationType: string;
   requiresStaff: boolean;
-  retailer_name?: string;
+  business_name?: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   created_at: string;
 }
 

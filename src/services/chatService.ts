@@ -35,7 +35,7 @@ export interface Message {
     id: string;
     senderId: string;
     senderName: string;
-    senderRole: "customer" | "retailer" | "admin";
+    senderRole: "customer" | "business" | "admin";
     receiverId: string;
     receiverName: string;
     text: string;
@@ -166,7 +166,7 @@ export interface Message {
     roomId: string,
     senderId: string,
     senderName: string,
-    senderRole: "customer" | "retailer" | "admin",
+    senderRole: "customer" | "business" | "admin",
     receiverId: string,
     receiverName: string,
     text: string,

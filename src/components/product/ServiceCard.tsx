@@ -15,8 +15,10 @@ interface Service {
   category: string;
   images: string[];
   duration_minutes: number;
-  retailer_name: string;
-  retailer_id: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
+  business_id: string; // Formerly retailer_id
+  retailer_id?: string; // Legacy support
   reviewCount?: number;
   averageRating?: number;
 }
@@ -93,7 +95,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">{service.retailer_name || "Retailer"}</span>
+              <span className="truncate max-w-[120px]">{service.business_name || service.retailer_name || "Business"}</span>
             </div>
             {service.averageRating && service.averageRating > 0 ? (
               <div className="flex items-center gap-1 text-amber-500">

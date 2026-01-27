@@ -93,7 +93,7 @@ export function CreateProductModal({
       // Check Square connection status
       const checkSquareStatus = async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/retailer/square/status`, {
+          const res = await fetch(`${API_BASE_URL}/business/square/status`, {
             credentials: "include",
           });
           const data = await res.json();
@@ -159,7 +159,7 @@ export function CreateProductModal({
   const fetchSquareItems = async () => {
     setLoadingSquareItems(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/retailer/square/items`, {
+      const res = await fetch(`${API_BASE_URL}/business/square/items`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -190,7 +190,7 @@ export function CreateProductModal({
     setSyncingItemDetails(true);
     
     try {
-      const res = await fetch(`${API_BASE_URL}/retailer/square/items/${itemId}/details`, {
+      const res = await fetch(`${API_BASE_URL}/business/square/items/${itemId}/details`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -568,7 +568,7 @@ export function CreateProductModal({
             <Alert>
               <AlertDescription className="text-xs">
                 <strong>Square Integration:</strong> Connect your Square account in{" "}
-                <a href="/retailer/square-settings" className="underline text-primary">
+                <a href="/business/square-settings" className="underline text-primary">
                   Square Settings
                 </a>{" "}
                 to enable real-time stock synchronization.

@@ -142,14 +142,16 @@ export default function SearchPage() {
               id: p.id,
               name: p.name,
               price: parseFloat(p.price) || 0,
-              retailer: p.retailer_name || "Retailer",
+              business: p.business_name || "Business",
               image: p.images?.[0] || "/opengraph.jpg",
               category: p.category,
               rating: p.averageRating || 0,
               reviews: p.reviewCount || 0,
               pickupTime: "30 mins",
-              retailerPostcode: p.postcode,
-              retailerCity: p.city,
+              businessPostcode: p.postcode,
+              businessCity: p.city,
+              retailerPostcode: p.postcode, // Legacy support
+              retailerCity: p.city, // Legacy support
             }))
           );
         } else {
@@ -192,8 +194,10 @@ export default function SearchPage() {
               category: s.category || "",
               images: Array.isArray(s.images) ? s.images : (s.images ? [s.images] : []),
               duration_minutes: parseInt(s.duration_minutes) || 60,
-              retailer_name: s.retailer_name || s.business_name || "Retailer",
-              retailer_id: s.retailer_id || "",
+              business_name: s.business_name || s.retailer_name || "Business",
+              retailer_name: s.business_name || s.retailer_name || "Business", // Legacy support
+              business_id: s.business_id || s.retailer_id || "",
+              retailer_id: s.business_id || s.retailer_id || "", // Legacy support
               reviewCount: s.review_count || s.reviewCount || 0,
               averageRating: s.average_rating || s.averageRating || 0,
             }));

@@ -22,8 +22,8 @@ interface CartItem {
   price: number;
   images: string[];
   stock: number;
-  retailer_name: string;
-  retailer_id: string;
+  business_name: string;
+  business_id: string;
 }
 
 interface CartServiceItem {
@@ -35,20 +35,20 @@ interface CartServiceItem {
   images: string[];
   category: string;
   duration_minutes: number;
-  retailer_name: string;
-  retailer_id: string;
+  business_name: string;
+  business_id: string;
 }
 
 interface OrderGroup {
-  retailer_id: string;
-  retailer_name: string;
+  business_id: string;
+  business_name: string;
   items: CartItem[];
   subtotal: number;
 }
 
 interface ServiceGroup {
-  retailer_id: string;
-  retailer_name: string;
+  business_id: string;
+  business_name: string;
   items: CartServiceItem[];
   subtotal: number;
 }
@@ -73,9 +73,9 @@ export default function CheckoutPage() {
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
-  // Support per-retailer bookings for services
-  const [retailerBookings, setRetailerBookings] = useState<Record<string, { date: string; time: string }>>({});
-  // Backward compatibility: single booking (for when all services are from one retailer)
+  // Support per-business bookings for services
+  const [businessBookings, setBusinessBookings] = useState<Record<string, { date: string; time: string }>>({});
+  // Backward compatibility: single booking (for when all services are from one business)
   const [bookingDate, setBookingDate] = useState<string>("");
   const [bookingTime, setBookingTime] = useState<string>("");
   const [lockingSlot, setLockingSlot] = useState(false);
@@ -110,10 +110,10 @@ export default function CheckoutPage() {
       const serviceRes = await fetch(`${API_BASE_URL}/cart/services`, { credentials: "include" });
       const serviceData = await serviceRes.json();
       if (serviceRes.ok && serviceData.success) {
-        // Ensure retailer_id is present in each service item
+        // Ensure business_id is present in each service item
         const services = (serviceData.data || []).map((item: any) => ({
           ...item,
-          retailer_id: item.retailer_id || item.retailerId || '',
+          business_id: item.business_id || item.businessId || '',
         }));
         setServiceItems(services);
       }
@@ -198,18 +198,18 @@ export default function CheckoutPage() {
     }
   };
 
-  // Group items by retailer
+  // Group items by business
   const orderGroups: OrderGroup[] = items.reduce((groups, item) => {
-    const retailerId = item.retailer_id;
-    const existingGroup = groups.find((g) => g.retailer_id === retailerId);
+    const businessId = item.business_id;
+    const existingGroup = groups.find((g) => g.business_id === businessId);
 
     if (existingGroup) {
       existingGroup.items.push(item);
       existingGroup.subtotal += item.price * item.quantity;
     } else {
       groups.push({
-        retailer_id: retailerId,
-        retailer_name: item.retailer_name,
+        business_id: businessId,
+        business_name: item.business_name,
         items: [item],
         subtotal: item.price * item.quantity,
       });
@@ -218,18 +218,18 @@ export default function CheckoutPage() {
     return groups;
   }, [] as OrderGroup[]);
 
-  // Group services by retailer
+  // Group services by business
   const serviceGroups = serviceItems.reduce((groups, item) => {
-    const retailerId = item.retailer_id;
-    const existingGroup = groups.find((g) => g.retailer_id === retailerId);
+    const businessId = item.business_id;
+    const existingGroup = groups.find((g) => g.business_id === businessId);
 
     if (existingGroup) {
       existingGroup.items.push(item);
       existingGroup.subtotal += item.price * item.quantity;
     } else {
       groups.push({
-        retailer_id: retailerId,
-        retailer_name: item.retailer_name,
+        business_id: businessId,
+        business_name: item.business_name,
         items: [item],
         subtotal: item.price * item.quantity,
       });
@@ -242,10 +242,10 @@ export default function CheckoutPage() {
   const serviceSubtotal = serviceItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const subtotal = orderGroups.reduce((sum, group) => sum + group.subtotal, 0) + serviceSubtotal;
 
-  // Get retailer IDs for services (for backward compatibility, check if all services are from one retailer)
-  const uniqueServiceRetailers = new Set(serviceItems.map(item => item.retailer_id));
-  const isSingleRetailerServices = uniqueServiceRetailers.size === 1;
-  // const serviceRetailerId = isSingleRetailerServices ? serviceItems[0]?.retailer_id : "";
+  // Get business IDs for services (for backward compatibility, check if all services are from one business)
+  const uniqueServiceBusinesses = new Set(serviceItems.map(item => item.business_id));
+  const isSingleBusinessServices = uniqueServiceBusinesses.size === 1;
+  // const serviceBusinessId = isSingleBusinessServices ? serviceItems[0]?.business_id : "";
   // const maxDuration = serviceItems.length > 0 
   //   ? Math.max(...serviceItems.map(item => item.duration_minutes))
   //   : 60;
@@ -266,18 +266,18 @@ export default function CheckoutPage() {
 
     // Validate booking if services are in cart
     if (serviceItems.length > 0) {
-      // Check if we have bookings for all retailers with services
+      // Check if we have bookings for all businesses with services
       const missingBookings: string[] = [];
-      for (const retailerId of uniqueServiceRetailers) {
-        const booking = retailerBookings[retailerId];
+      for (const businessId of uniqueServiceBusinesses) {
+        const booking = businessBookings[businessId];
         if (!booking || !booking.date || !booking.time) {
-          // For backward compatibility, check single booking if all services are from one retailer
-          if (isSingleRetailerServices && bookingDate && bookingTime) {
-            // Use single booking, will be converted to per-retailer format
+          // For backward compatibility, check single booking if all services are from one business
+          if (isSingleBusinessServices && bookingDate && bookingTime) {
+            // Use single booking, will be converted to per-business format
             continue;
           }
-          const retailerName = serviceGroups.find(g => g.retailer_id === retailerId)?.retailer_name || 'this retailer';
-          missingBookings.push(retailerName);
+          const businessName = serviceGroups.find(g => g.business_id === businessId)?.business_name || 'this business';
+          missingBookings.push(businessName);
         }
       }
 
@@ -289,20 +289,20 @@ export default function CheckoutPage() {
       // Lock the booking slots before placing order
       setLockingSlot(true);
       try {
-        for (const retailerId of uniqueServiceRetailers) {
+        for (const businessId of uniqueServiceBusinesses) {
           let bookingDateToUse: string;
           let bookingTimeToUse: string;
 
-          // Get booking for this retailer
-          if (retailerBookings[retailerId]) {
-            bookingDateToUse = retailerBookings[retailerId].date;
-            bookingTimeToUse = retailerBookings[retailerId].time;
-          } else if (isSingleRetailerServices && bookingDate && bookingTime) {
+          // Get booking for this business
+          if (businessBookings[businessId]) {
+            bookingDateToUse = businessBookings[businessId].date;
+            bookingTimeToUse = businessBookings[businessId].time;
+          } else if (isSingleBusinessServices && bookingDate && bookingTime) {
             // Backward compatibility: use single booking
             bookingDateToUse = bookingDate;
             bookingTimeToUse = bookingTime;
           } else {
-            throw new Error(`Booking date and time required for retailer ${retailerId}`);
+            throw new Error(`Booking date and time required for business ${businessId}`);
           }
 
           const lockRes = await fetch(`${API_BASE_URL}/bookings/lock`, {
@@ -310,7 +310,7 @@ export default function CheckoutPage() {
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({
-              retailerId,
+              businessId,
               date: bookingDateToUse,
               time: bookingTimeToUse,
             }),
@@ -318,8 +318,8 @@ export default function CheckoutPage() {
 
           const lockData = await lockRes.json();
           if (!lockRes.ok || !lockData.success) {
-            const retailerName = serviceGroups.find(g => g.retailer_id === retailerId)?.retailer_name || 'this retailer';
-            throw new Error(lockData.message || `The selected time slot is no longer available for ${retailerName}. Please choose another time.`);
+            const businessName = serviceGroups.find(g => g.business_id === businessId)?.business_name || 'this business';
+            throw new Error(lockData.message || `The selected time slot is no longer available for ${businessName}. Please choose another time.`);
           }
         }
       } catch (err: any) {
@@ -335,13 +335,13 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      // Prepare booking data: use per-retailer bookings if available, otherwise single booking for backward compatibility
+      // Prepare booking data: use per-business bookings if available, otherwise single booking for backward compatibility
       let bookingData: any = {};
       if (serviceItems.length > 0) {
-        if (Object.keys(retailerBookings).length > 0) {
-          // Use per-retailer bookings
-          bookingData.retailerBookings = retailerBookings;
-        } else if (isSingleRetailerServices && bookingDate && bookingTime) {
+        if (Object.keys(businessBookings).length > 0) {
+          // Use per-business bookings
+          bookingData.businessBookings = businessBookings;
+        } else if (isSingleBusinessServices && bookingDate && bookingTime) {
           // Backward compatibility: single booking for all services
           bookingData.bookingDate = bookingDate;
           bookingData.bookingTime = bookingTime;
@@ -368,15 +368,15 @@ export default function CheckoutPage() {
 
       // Show booking confirmation notification if services were booked
       if (serviceItems.length > 0) {
-        if (Object.keys(retailerBookings).length > 0) {
-          // Multiple retailers - show summary
-          const bookingCount = Object.keys(retailerBookings).length;
+        if (Object.keys(businessBookings).length > 0) {
+          // Multiple businesses - show summary
+          const bookingCount = Object.keys(businessBookings).length;
           toast({
             title: "Bookings Confirmed",
             description: `Your ${bookingCount} service ${bookingCount > 1 ? 'bookings' : 'booking'} ${bookingCount > 1 ? 'have' : 'has'} been confirmed. You'll receive a confirmation email shortly.`,
           });
         } else if (bookingDate && bookingTime) {
-          // Single retailer
+          // Single business
           toast({
             title: "Booking Confirmed",
             description: `Your service is booked for ${new Date(bookingDate).toLocaleDateString("en-GB", {
@@ -391,7 +391,7 @@ export default function CheckoutPage() {
 
       // Check if Stripe checkout is required
       if (data.data.checkoutSessions && data.data.checkoutSessions.length > 0) {
-        // Handle multiple checkout sessions (multiple retailers)
+        // Handle multiple checkout sessions (multiple businesses)
         if (data.data.checkoutSessions.length > 1) {
           // Store remaining checkout sessions in sessionStorage for sequential processing
           const remainingSessions = data.data.checkoutSessions.slice(1);
@@ -414,8 +414,8 @@ export default function CheckoutPage() {
 
       // No Stripe checkout needed - this shouldn't happen for normal orders
       // Log a warning and show an error
-      console.warn('Order created but no checkout session was created. This may indicate the retailer has not set up Stripe Connect.');
-      setError("Payment processing is not available for this retailer. Please contact the retailer directly.");
+      console.warn('Order created but no checkout session was created. This may indicate the business has not set up Stripe Connect.');
+      setError("Payment processing is not available for this business. Please contact the business directly.");
       setPlacingOrder(false);
     } catch (err: any) {
       setError(err.message || "Failed to place order");
@@ -568,40 +568,40 @@ export default function CheckoutPage() {
                     Select Booking Date & Time
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {isSingleRetailerServices 
+                    {isSingleBusinessServices 
                       ? "Please select a date and time for your service booking."
-                      : "Please select a date and time for each retailer's services."}
+                      : "Please select a date and time for each business's services."}
                   </p>
                 </div>
                 {serviceGroups.map((group) => {
-                  const retailerBooking = retailerBookings[group.retailer_id] || { date: "", time: "" };
+                  const businessBooking = businessBookings[group.business_id] || { date: "", time: "" };
                   const groupMaxDuration = Math.max(...group.items.map(item => item.duration_minutes));
                   
                   return (
-                    <Card key={group.retailer_id} className="border-l-4 border-l-primary">
+                    <Card key={group.business_id} className="border-l-4 border-l-primary">
                       <CardHeader>
-                        <CardTitle className="text-base">{group.retailer_name}</CardTitle>
+                        <CardTitle className="text-base">{group.business_name}</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          {group.items.length} service{group.items.length > 1 ? 's' : ''} from this retailer
+                          {group.items.length} service{group.items.length > 1 ? 's' : ''} from this business
                         </p>
                       </CardHeader>
                       <CardContent>
                         <DateTimePicker
-                          retailerId={group.retailer_id}
+                          businessId={group.business_id}
                           durationMinutes={groupMaxDuration}
                           onSelect={(date, time) => {
-                            setRetailerBookings(prev => ({
+                            setBusinessBookings(prev => ({
                               ...prev,
-                              [group.retailer_id]: { date, time }
+                              [group.business_id]: { date, time }
                             }));
-                            // For backward compatibility, also set single booking if only one retailer
-                            if (isSingleRetailerServices) {
+                            // For backward compatibility, also set single booking if only one business
+                            if (isSingleBusinessServices) {
                               setBookingDate(date);
                               setBookingTime(time);
                             }
                           }}
-                          selectedDate={retailerBooking.date}
-                          selectedTime={retailerBooking.time}
+                          selectedDate={businessBooking.date}
+                          selectedTime={businessBooking.time}
                         />
                       </CardContent>
                     </Card>
@@ -665,8 +665,8 @@ export default function CheckoutPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {orderGroups.map((group) => (
-                  <div key={group.retailer_id} className="border-b pb-4 last:border-0">
-                    <div className="font-semibold mb-2">{group.retailer_name}</div>
+                  <div key={group.business_id} className="border-b pb-4 last:border-0">
+                    <div className="font-semibold mb-2">{group.business_name}</div>
                     {group.items.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm text-muted-foreground mb-1">
                         <span>
@@ -682,19 +682,19 @@ export default function CheckoutPage() {
                     <div className="mt-3 pt-3 border-t text-sm">
                       <div className="font-medium mb-1">Pickup Location:</div>
                       <div className="text-muted-foreground">
-                        Pick up at {group.retailer_name} store. Exact address will be provided in your order confirmation.
+                        Pick up at {group.business_name} store. Exact address will be provided in your order confirmation.
                       </div>
                     </div>
                   </div>
                 ))}
                 
                 {serviceGroups.map((group) => {
-                  const retailerBooking = retailerBookings[group.retailer_id] || 
-                    (isSingleRetailerServices && bookingDate && bookingTime ? { date: bookingDate, time: bookingTime } : null);
+                  const businessBooking = businessBookings[group.business_id] || 
+                    (isSingleBusinessServices && bookingDate && bookingTime ? { date: bookingDate, time: bookingTime } : null);
                   
                   return (
-                    <div key={group.retailer_id} className="border-b pb-4 last:border-0">
-                      <div className="font-semibold mb-2">Services - {group.retailer_name}</div>
+                    <div key={group.business_id} className="border-b pb-4 last:border-0">
+                      <div className="font-semibold mb-2">Services - {group.business_name}</div>
                       {group.items.map((item) => (
                         <div key={item.id} className="flex justify-between text-sm text-muted-foreground mb-1">
                           <span>
@@ -703,16 +703,16 @@ export default function CheckoutPage() {
                           <span>£{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
-                      {retailerBooking && retailerBooking.date && retailerBooking.time && (
+                      {businessBooking && businessBooking.date && businessBooking.time && (
                         <div className="mt-2 text-sm text-muted-foreground">
                           <div className="font-medium mb-1">Booking:</div>
                           <div>
-                            {new Date(retailerBooking.date).toLocaleDateString("en-GB", {
+                            {new Date(businessBooking.date).toLocaleDateString("en-GB", {
                               weekday: "long",
                               year: "numeric",
                               month: "long",
                               day: "numeric",
-                            })} at {retailerBooking.time}
+                            })} at {businessBooking.time}
                           </div>
                         </div>
                       )}
@@ -772,11 +772,11 @@ export default function CheckoutPage() {
                   !formData.fullName || 
                   !formData.email ||
                   (serviceItems.length > 0 && (
-                    // Check if all retailers with services have bookings
-                    Array.from(uniqueServiceRetailers).some(retailerId => {
-                      const booking = retailerBookings[retailerId];
+                    // Check if all businesses with services have bookings
+                    Array.from(uniqueServiceBusinesses).some(businessId => {
+                      const booking = businessBookings[businessId];
                       return !booking || !booking.date || !booking.time;
-                    }) && !(isSingleRetailerServices && bookingDate && bookingTime)
+                    }) && !(isSingleBusinessServices && bookingDate && bookingTime)
                   ))
                 }
               >

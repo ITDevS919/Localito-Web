@@ -28,8 +28,9 @@ interface PayoutSettings {
   updatedAt: string;
 }
 
-interface RetailerPayoutInfo {
-  retailerId: string;
+interface BusinessPayoutInfo {
+  businessId: string; // Formerly retailerId
+  retailerId?: string; // Legacy support
   businessName: string;
   email: string;
   username: string;
@@ -39,19 +40,19 @@ interface RetailerPayoutInfo {
 export default function AdminPayoutVerificationsPage() {
   useRequireRole("admin", "/admin");
   const { toast } = useToast();
-  const [retailers, setRetailers] = useState<RetailerPayoutInfo[]>([]);
+  const [businesses, setBusinesses] = useState<BusinessPayoutInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
-  const [selectedRetailer, setSelectedRetailer] = useState<RetailerPayoutInfo | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<BusinessPayoutInfo | null>(null);
   const [verifyAction, setVerifyAction] = useState<"verify" | "unverify">("verify");
 
   useEffect(() => {
-    loadRetailers();
+    loadBusinesses();
   }, []);
 
-  const loadRetailers = async () => {
+  const loadBusinesses = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -60,9 +61,9 @@ export default function AdminPayoutVerificationsPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to load retailers");
+        throw new Error(data.message || "Failed to load businesses");
       }
-      setRetailers(data.data || []);
+      setBusinesses(data.data || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -70,31 +71,31 @@ export default function AdminPayoutVerificationsPage() {
     }
   };
 
-  const handleVerifyClick = (retailer: RetailerPayoutInfo, action: "verify" | "unverify") => {
-    if (!retailer.payoutSettings) {
+  const handleVerifyClick = (business: BusinessPayoutInfo, action: "verify" | "unverify") => {
+    if (!business.payoutSettings) {
       toast({
         title: "No Payout Settings",
-        description: "This retailer has not configured payout settings yet.",
+        description: "This business has not configured payout settings yet.",
         variant: "destructive",
       });
       return;
     }
-    setSelectedRetailer(retailer);
+    setSelectedBusiness(business);
     setVerifyAction(action);
     setVerifyDialogOpen(true);
   };
 
   const handleVerifyConfirm = async () => {
-    if (!selectedRetailer || !selectedRetailer.payoutSettings) return;
+    if (!selectedBusiness || !selectedBusiness.payoutSettings) return;
 
-    setVerifying(selectedRetailer.retailerId);
+    setVerifying(selectedBusiness.businessId || selectedBusiness.retailerId || "");
     try {
-      const res = await fetch(`${API_BASE_URL}/retailer/payout-settings/verify`, {
+      const res = await fetch(`${API_BASE_URL}/business/payout-settings/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          retailerId: selectedRetailer.retailerId,
+          businessId: selectedBusiness.businessId || selectedBusiness.retailerId,
           verified: verifyAction === "verify",
         }),
       });
@@ -109,10 +110,10 @@ export default function AdminPayoutVerificationsPage() {
         description: data.message || "Verification status updated successfully",
       });
 
-      // Reload retailers to get updated status
-      await loadRetailers();
+      // Reload businesses to get updated status
+      await loadBusinesses();
       setVerifyDialogOpen(false);
-      setSelectedRetailer(null);
+      setSelectedBusiness(null);
     } catch (err: any) {
       toast({
         title: "Error",
@@ -120,7 +121,7 @@ export default function AdminPayoutVerificationsPage() {
         variant: "destructive",
       });
       setVerifyDialogOpen(false);
-      setSelectedRetailer(null);
+      setSelectedBusiness(null);
     } finally {
       setVerifying(null);
     }
@@ -159,9 +160,9 @@ export default function AdminPayoutVerificationsPage() {
     return details;
   };
 
-  const verifiedRetailers = retailers.filter((r) => r.payoutSettings?.isVerified);
-  const unverifiedRetailers = retailers.filter((r) => r.payoutSettings && !r.payoutSettings.isVerified);
-  const noSettingsRetailers = retailers.filter((r) => !r.payoutSettings);
+  const verifiedBusinesses = businesses.filter((b) => b.payoutSettings?.isVerified);
+  const unverifiedBusinesses = businesses.filter((b) => b.payoutSettings && !b.payoutSettings.isVerified);
+  const noSettingsBusinesses = businesses.filter((b) => !b.payoutSettings);
 
   return (
     <AdminDashboardLayout>
@@ -169,7 +170,7 @@ export default function AdminPayoutVerificationsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Payout Account Verifications</h1>
-            <p className="text-muted-foreground">Review and verify retailer payout accounts</p>
+            <p className="text-muted-foreground">Review and verify business payout accounts</p>
           </div>
         </div>
 
@@ -181,7 +182,7 @@ export default function AdminPayoutVerificationsPage() {
               <CheckCircle2 className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{verifiedRetailers.length}</div>
+              <div className="text-2xl font-bold text-green-600">{verifiedBusinesses.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -190,7 +191,7 @@ export default function AdminPayoutVerificationsPage() {
               <AlertCircle className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-600">{unverifiedRetailers.length}</div>
+              <div className="text-2xl font-bold text-amber-600">{unverifiedBusinesses.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -199,7 +200,7 @@ export default function AdminPayoutVerificationsPage() {
               <XCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-muted-foreground">{noSettingsRetailers.length}</div>
+              <div className="text-2xl font-bold text-muted-foreground">{noSettingsBusinesses.length}</div>
             </CardContent>
           </Card>
         </div>
@@ -221,17 +222,17 @@ export default function AdminPayoutVerificationsPage() {
           </Card>
         )}
 
-        {/* Unverified Retailers */}
-        {!loading && !error && unverifiedRetailers.length > 0 && (
+        {/* Unverified Businesses */}
+        {!loading && !error && unverifiedBusinesses.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Pending Verification</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {unverifiedRetailers.map((retailer) => (
-                <Card key={retailer.retailerId}>
+              {unverifiedBusinesses.map((business) => (
+                <Card key={business.businessId || business.retailerId}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{retailer.businessName}</CardTitle>
+                        <CardTitle className="text-lg">{business.businessName}</CardTitle>
                         <Badge className="mt-2 bg-amber-600 hover:bg-amber-700">Pending Verification</Badge>
                       </div>
                     </div>
@@ -241,24 +242,24 @@ export default function AdminPayoutVerificationsPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="h-4 w-4" />
-                          <span>{retailer.email}</span>
+                          <span>{business.email}</span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <User className="h-4 w-4" />
-                          <span>{retailer.username}</span>
+                          <span>{business.username}</span>
                         </div>
-                        {retailer.payoutSettings && (
+                        {business.payoutSettings && (
                           <>
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <CreditCard className="h-4 w-4" />
-                              <span>{getPayoutMethodLabel(retailer.payoutSettings.payoutMethod)}</span>
+                              <span>{getPayoutMethodLabel(business.payoutSettings.payoutMethod)}</span>
                             </div>
                             <div className="mt-2 p-2 bg-muted rounded-md text-xs">
                               <div className="font-medium mb-1">Account Details:</div>
                               {Object.entries(
                                 maskAccountDetails(
-                                  retailer.payoutSettings.accountDetails,
-                                  retailer.payoutSettings.payoutMethod
+                                  business.payoutSettings.accountDetails,
+                                  business.payoutSettings.payoutMethod
                                 )
                               ).map(([key, value]) => (
                                 <div key={key} className="text-muted-foreground">
@@ -272,10 +273,10 @@ export default function AdminPayoutVerificationsPage() {
                       </div>
                       <Button
                         className="w-full"
-                        onClick={() => handleVerifyClick(retailer, "verify")}
-                        disabled={verifying === retailer.retailerId}
+                        onClick={() => handleVerifyClick(business, "verify")}
+                        disabled={verifying === (business.businessId || business.retailerId)}
                       >
-                        {verifying === retailer.retailerId ? (
+                        {verifying === (business.businessId || business.retailerId) ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Verifying...
@@ -295,17 +296,17 @@ export default function AdminPayoutVerificationsPage() {
           </div>
         )}
 
-        {/* Verified Retailers */}
-        {!loading && !error && verifiedRetailers.length > 0 && (
+        {/* Verified Businesses */}
+        {!loading && !error && verifiedBusinesses.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Verified Accounts</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {verifiedRetailers.map((retailer) => (
-                <Card key={retailer.retailerId}>
+              {verifiedBusinesses.map((business) => (
+                <Card key={business.businessId || business.retailerId}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{retailer.businessName}</CardTitle>
+                        <CardTitle className="text-lg">{business.businessName}</CardTitle>
                         <Badge className="mt-2 bg-green-600 hover:bg-green-700">Verified</Badge>
                       </div>
                     </div>
@@ -315,24 +316,24 @@ export default function AdminPayoutVerificationsPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="h-4 w-4" />
-                          <span>{retailer.email}</span>
+                          <span>{business.email}</span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <User className="h-4 w-4" />
-                          <span>{retailer.username}</span>
+                          <span>{business.username}</span>
                         </div>
-                        {retailer.payoutSettings && (
+                        {business.payoutSettings && (
                           <>
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <CreditCard className="h-4 w-4" />
-                              <span>{getPayoutMethodLabel(retailer.payoutSettings.payoutMethod)}</span>
+                              <span>{getPayoutMethodLabel(business.payoutSettings.payoutMethod)}</span>
                             </div>
                             <div className="mt-2 p-2 bg-muted rounded-md text-xs">
                               <div className="font-medium mb-1">Account Details:</div>
                               {Object.entries(
                                 maskAccountDetails(
-                                  retailer.payoutSettings.accountDetails,
-                                  retailer.payoutSettings.payoutMethod
+                                  business.payoutSettings.accountDetails,
+                                  business.payoutSettings.payoutMethod
                                 )
                               ).map(([key, value]) => (
                                 <div key={key} className="text-muted-foreground">
@@ -347,10 +348,10 @@ export default function AdminPayoutVerificationsPage() {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => handleVerifyClick(retailer, "unverify")}
-                        disabled={verifying === retailer.retailerId}
+                        onClick={() => handleVerifyClick(business, "unverify")}
+                        disabled={verifying === (business.businessId || business.retailerId)}
                       >
-                        {verifying === retailer.retailerId ? (
+                        {verifying === (business.businessId || business.retailerId) ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Updating...
@@ -370,17 +371,17 @@ export default function AdminPayoutVerificationsPage() {
           </div>
         )}
 
-        {/* No Settings Retailers */}
-        {!loading && !error && noSettingsRetailers.length > 0 && (
+        {/* No Settings Businesses */}
+        {!loading && !error && noSettingsBusinesses.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">No Payout Settings</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {noSettingsRetailers.map((retailer) => (
-                <Card key={retailer.retailerId}>
+              {noSettingsBusinesses.map((business) => (
+                <Card key={business.businessId || business.retailerId}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{retailer.businessName}</CardTitle>
+                        <CardTitle className="text-lg">{business.businessName}</CardTitle>
                         <Badge className="mt-2 bg-gray-600 hover:bg-gray-700">No Settings</Badge>
                       </div>
                     </div>
@@ -389,14 +390,14 @@ export default function AdminPayoutVerificationsPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Mail className="h-4 w-4" />
-                        <span>{retailer.email}</span>
+                        <span>{business.email}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <User className="h-4 w-4" />
-                        <span>{retailer.username}</span>
+                        <span>{business.username}</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        This retailer has not configured payout settings yet.
+                        This business has not configured payout settings yet.
                       </p>
                     </div>
                   </CardContent>
@@ -406,13 +407,13 @@ export default function AdminPayoutVerificationsPage() {
           </div>
         )}
 
-        {!loading && !error && retailers.length === 0 && (
+        {!loading && !error && businesses.length === 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-12">
                 <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No retailers found</h3>
-                <p className="text-muted-foreground">No retailers are registered on the platform yet.</p>
+                <h3 className="text-lg font-semibold mb-2">No businesses found</h3>
+                <p className="text-muted-foreground">No businesses are registered on the platform yet.</p>
               </div>
             </CardContent>
           </Card>
@@ -429,12 +430,12 @@ export default function AdminPayoutVerificationsPage() {
             <AlertDialogDescription>
               {verifyAction === "verify" ? (
                 <>
-                  Are you sure you want to verify the payout account for <strong>{selectedRetailer?.businessName}</strong>?
+                  Are you sure you want to verify the payout account for <strong>{selectedBusiness?.businessName}</strong>?
                   This will allow them to request payouts.
                 </>
               ) : (
                 <>
-                  Are you sure you want to unverify the payout account for <strong>{selectedRetailer?.businessName}</strong>?
+                  Are you sure you want to unverify the payout account for <strong>{selectedBusiness?.businessName}</strong>?
                   They will no longer be able to request payouts until verified again.
                 </>
               )}

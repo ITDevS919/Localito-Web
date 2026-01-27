@@ -95,7 +95,7 @@ export default function MessagesPage() {
         selectedRoom.id,
         user.id,
         user.username,
-        user.role as "customer" | "retailer" | "admin",
+        user.role as "customer" | "business" | "admin",
         otherParticipant,
         selectedRoom.participantNames[otherParticipant] || "Unknown",
         messageText.trim(),

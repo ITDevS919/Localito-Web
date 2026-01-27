@@ -30,14 +30,16 @@ export default function Home() {
             id: p.id,
             name: p.name,
             price: p.price,
-            retailer: p.retailer_name || "Retailer",
+            business: p.business_name || "Business",
             image: p.images?.[0] || "/opengraph.jpg",
             category: p.category,
             rating: p.averageRating || 0,  // Changed from 4.5
             reviews: p.reviewCount || 0,    // Changed from 0
             pickupTime: "30 mins",
-            retailerPostcode: p.postcode,
-            retailerCity: p.city,
+            businessPostcode: p.postcode,
+            businessCity: p.city,
+            retailerPostcode: p.postcode, // Legacy support
+            retailerCity: p.city, // Legacy support
           }));
           setFeaturedProducts(products);
         }
@@ -144,7 +146,7 @@ export default function Home() {
                   <Store className="h-8 w-8" />
                 </div>
                 <h3 className="mb-2 font-heading text-xl font-bold">Support Local</h3>
-                <p className="text-muted-foreground">Directly support independent retailers in Manchester with every purchase.</p>
+                <p className="text-muted-foreground">Directly support independent businesses in Manchester with every purchase.</p>
               </div>
               <div className="flex flex-col items-center text-center p-4">
                 <div className="mb-4 rounded-full bg-primary/10 p-3 text-primary">
@@ -158,7 +160,7 @@ export default function Home() {
                   <ShieldCheck className="h-8 w-8" />
                 </div>
                 <h3 className="mb-2 font-heading text-xl font-bold">Verified Sellers</h3>
-                <p className="text-muted-foreground">Every retailer is vetted to ensure quality and authentic local products.</p>
+                <p className="text-muted-foreground">Every business is vetted to ensure quality and authentic local products.</p>
               </div>
             </div>
           </div>
@@ -177,19 +179,26 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
               {CATEGORIES.map((category) => (
                 <Link key={category.id} href={`/search?category=${category.slug}`}>
                   <div className="group cursor-pointer rounded-xl border border-border bg-card p-6 text-center transition-all hover:border-primary hover:shadow-md">
                     <div className="mb-3 text-4xl">
-                      {/* Simple Emoji/Icon placeholders for categories if no images */}
-                      {category.slug === 'food-drink' && '🥐'}
-                      {category.slug === 'arts-crafts' && '🎨'}
-                      {category.slug === 'home-living' && '🏠'}
-                      {category.slug === 'fashion' && '👗'}
+                      {/* Category icons matching the new comprehensive list */}
+                      {category.slug === 'food-drink' && '🍽️'}
                       {category.slug === 'health-beauty' && '💄'}
+                      {category.slug === 'fashion-accessories' && '👗'}
+                      {category.slug === 'home-living' && '🏠'}
+                      {category.slug === 'electronics-tech' && '📱'}
+                      {category.slug === 'books-music-hobbies' && '📚'}
+                      {category.slug === 'kids-family' && '👶'}
+                      {category.slug === 'sports-outdoors' && '⚽'}
+                      {category.slug === 'gifts-flowers-stationery' && '🎁'}
+                      {category.slug === 'pets' && '🐾'}
+                      {category.slug === 'services' && '🔧'}
+                      {category.slug === 'other' && '📦'}
                     </div>
-                    <h3 className="font-medium group-hover:text-primary">{category.name}</h3>
+                    <h3 className="font-medium group-hover:text-primary text-sm">{category.name}</h3>
                   </div>
                 </Link>
               ))}
@@ -231,7 +240,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Call to Action for Retailers */}
+        {/* Call to Action for Businesses */}
         <section className="py-20 bg-gradient-to-b from-background to-secondary/20">
           <div className="container mx-auto px-4">
             <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl border border-primary/20">
@@ -239,13 +248,13 @@ export default function Home() {
                 <div className="space-y-4 md:col-span-3">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 text-primary-foreground/90 text-sm font-medium">
                     <Store className="h-4 w-4" />
-                    For Retailers
+                    For Businesses
                   </div>
                   <h2 className="font-heading text-3xl font-bold md:text-4xl lg:text-5xl leading-tight">
                     Grow Your Local Business with Localito
                   </h2>
                   <p className="text-lg text-primary-foreground/90 leading-relaxed">
-                    Join Manchester's premier marketplace for independent retailers. Reach thousands of local customers, increase your online presence, and boost sales—all with transparent pricing and dedicated support.
+                    Join Manchester's premier marketplace for independent businesses. Reach thousands of local customers, increase your online presence, and boost sales—all with transparent pricing and dedicated support.
                   </p>
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="flex items-start gap-3">
@@ -287,14 +296,14 @@ export default function Home() {
                   </div>
                   <div className="flex flex-wrap gap-4 pt-2">
                     <Button size="lg" variant="secondary" className="text-primary font-bold shadow-lg hover:shadow-xl transition-shadow" asChild>
-                      <Link href="/signup/retailer">
+                      <Link href="/signup/business">
                         Get Started Free
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
 
                     </Button>
                     <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground/50 transition-colors" asChild>
-                      <Link href="/terms/retailers">
+                      <Link href="/terms/businesses">
                         View Terms
                       </Link>
                     </Button>
@@ -351,7 +360,7 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/retailer/dashboard" className="hover:text-primary-foreground transition-colors">
+                  <Link href="/business/dashboard" className="hover:text-primary-foreground transition-colors">
                     Stores
                   </Link>
                 </li>
@@ -395,8 +404,8 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms/retailers" className="hover:text-primary-foreground transition-colors">
-                    Retailer Terms
+                  <Link href="/terms/businesses" className="hover:text-primary-foreground transition-colors">
+                    Business Terms
                   </Link>
                 </li>
               </ul>

@@ -210,7 +210,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">{product.retailer}</span>
+              <span className="truncate max-w-[120px]">{product.business}</span>
             </div>
             <div className="flex items-center gap-1 text-amber-500">
               <Star className="h-3 w-3 fill-current" />

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { MessageCircle } from "lucide-react";
-import { startChatWithRetailer } from "@/utils/chatHelpers";
+import { startChatWithBusiness } from "@/utils/chatHelpers";
 import { useLocation } from "wouter";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -30,7 +30,8 @@ interface Product {
   stock: number;
   category: string;
   images: string[];
-  retailerId: string;
+  businessId: string; // Formerly retailerId
+  retailerId?: string; // Legacy support
   isApproved: boolean;
   reviewCount?: number;
   averageRating?: number;
@@ -162,10 +163,10 @@ export default function ProductDetailPage() {
       return;
     }
 
-    if (!product?.retailerId) return;
+    if (!product?.businessId && !product?.retailerId) return;
 
     try {
-      await startChatWithRetailer(product.retailerId, user, setLocation);
+      await startChatWithBusiness(product.businessId || product.retailerId || "", user, setLocation);
       toast({
         title: "Chat started",
         description: "You can now message the seller",
@@ -264,7 +265,7 @@ export default function ProductDetailPage() {
               <div className="pt-4">
                 <h3 className="font-semibold mb-2">Seller info</h3>
                 <p className="text-sm text-muted-foreground">
-                  Retailer ID: {product.retailerId} (approval required for full profile)
+                  Business ID: {product.businessId || product.retailerId} (approval required for full profile)
                 </p>
               </div>
             </div>

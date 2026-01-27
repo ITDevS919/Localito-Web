@@ -174,8 +174,8 @@ export default function LoginAdminPage() {
           <CardFooter className="flex flex-col space-y-3">
             <div className="text-sm text-center text-muted-foreground">
               Not an admin?{" "}
-              <Link href="/login/retailer" className="text-primary hover:underline font-medium">
-                Retailer login
+              <Link href="/login/business" className="text-primary hover:underline font-medium">
+                Business login
               </Link>
               {" or "}
               <Link href="/login/customer" className="text-primary hover:underline font-medium">

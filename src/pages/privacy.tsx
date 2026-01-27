@@ -84,7 +84,7 @@ export default function PrivacyPage() {
                   our Cookie Policy (link available on the site).
                 </li>
                 <li>
-                  <span className="font-semibold">From third parties:</span> For example, from Retailers
+                  <span className="font-semibold">From third parties:</span> For example, from Businesses
                   in relation to order status or pickup confirmation.
                 </li>
               </ul>
@@ -96,7 +96,7 @@ export default function PrivacyPage() {
                 <li>
                   <span className="font-semibold">To fulfil your orders (Contract – Art. 6(1)(b) UK GDPR):</span>{" "}
                   processing payments, providing order confirmations, and
-                  coordinating in-store pickup with Retailers.
+                  coordinating in-store pickup with Businesses.
                 </li>
                 <li>
                   <span className="font-semibold">
@@ -125,8 +125,8 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-heading font-semibold">5. Sharing Your Data</h2>
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                 <li>
-                  <span className="font-semibold">With Retailers:</span> We share necessary order details
-                  (such as items, name and pickup information) so that Retailers
+                  <span className="font-semibold">With Businesses:</span> We share necessary order details
+                  (such as items, name and pickup information) so that Businesses
                   can prepare and hand over your order.
                 </li>
                 <li>

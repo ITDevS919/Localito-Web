@@ -16,7 +16,8 @@ interface CartItem {
   price: number;
   images: string[];
   stock: number;
-  retailer_name: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
 }
 
 interface CartServiceItem {
@@ -27,7 +28,8 @@ interface CartServiceItem {
   price: number;
   images: string[];
   duration_minutes: number;
-  retailer_name: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
 }
 
 export default function CartPage() {
@@ -152,7 +154,7 @@ export default function CartPage() {
                     />
                     <div className="flex-1">
                       <div className="font-semibold">{item.name}</div>
-                      <div className="text-sm text-muted-foreground">{item.retailer_name}</div>
+                      <div className="text-sm text-muted-foreground">{item.business_name || item.retailer_name}</div>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-sm text-muted-foreground">Quantity:</span>
                         <div className="flex items-center gap-1 border rounded-md">
@@ -221,7 +223,7 @@ export default function CartPage() {
                             Service
                           </Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground">{item.retailer_name}</div>
+                        <div className="text-sm text-muted-foreground">{item.business_name || item.retailer_name}</div>
                         <div className="text-sm text-muted-foreground mt-1">
                           Duration: {item.duration_minutes} minutes
                         </div>

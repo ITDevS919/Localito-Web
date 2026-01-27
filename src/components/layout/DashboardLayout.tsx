@@ -18,36 +18,36 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [createServiceOpen, setCreateServiceOpen] = useState(false);
 
-  const retailerName = user?.username ?? "Retailer";
-  const retailerEmail = user?.email ?? "—";
+  const businessName = user?.username ?? "Business";
+  const businessEmail = user?.email ?? "—";
 
   const navItems = [
-    { href: "/retailer/dashboard", label: "Overview", icon: LayoutDashboard },
-    { href: "/retailer/products", label: "Products", icon: Package },
-    { href: "/retailer/qr-scanner", label: "QR Code Scanner", icon: QrCode },
-    { href: "/retailer/orders", label: "Orders", icon: ShoppingBag },
-    { href: "/retailer/availability", label: "Availability", icon: Calendar },
-    { href: "/retailer/messages", label: "Messages", icon: MessageCircle },
-    { href: "/retailer/posts", label: "Posts", icon: MessageSquare },
-    { href: "/retailer/payouts", label: "Payouts", icon: Wallet },
-    { href: "/retailer/settings", label: "Settings", icon: Settings },
+    { href: "/business/dashboard", label: "Overview", icon: LayoutDashboard },
+    { href: "/business/products", label: "Products", icon: Package },
+    { href: "/business/qr-scanner", label: "QR Code Scanner", icon: QrCode },
+    { href: "/business/orders", label: "Orders", icon: ShoppingBag },
+    { href: "/business/availability", label: "Availability", icon: Calendar },
+    { href: "/business/messages", label: "Messages", icon: MessageCircle },
+    { href: "/business/posts", label: "Posts", icon: MessageSquare },
+    { href: "/business/payouts", label: "Payouts", icon: Wallet },
+    { href: "/business/settings", label: "Settings", icon: Settings },
   ];
 
   // Get page title based on current route
   const getPageTitle = () => {
-    if (location === "/retailer/products") return "Products";
-    if (location === "/retailer/qr-scanner") return "QR Code Scanner";
-    if (location === "/retailer/orders") return "Orders";
-    if (location === "/retailer/availability") return "Availability";
-    if (location === "/retailer/messages") return "Messages";
-    if (location === "/retailer/posts") return "Posts";
-    if (location === "/retailer/payouts") return "Payouts";
-    if (location === "/retailer/settings") return "Settings";
+    if (location === "/business/products") return "Products";
+    if (location === "/business/qr-scanner") return "QR Code Scanner";
+    if (location === "/business/orders") return "Orders";
+    if (location === "/business/availability") return "Availability";
+    if (location === "/business/messages") return "Messages";
+    if (location === "/business/posts") return "Posts";
+    if (location === "/business/payouts") return "Payouts";
+    if (location === "/business/settings") return "Settings";
     return "Dashboard";
   };
 
   // Show Create buttons on Products and Dashboard pages
-  const showCreateButton = location === "/retailer/dashboard";
+  const showCreateButton = location === "/business/dashboard";
 
   return (
     <div className="min-h-screen bg-muted/20 flex">
@@ -68,8 +68,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                    <Store className="h-5 w-5" />
                 </div>
                 <div className="overflow-hidden">
-                   <p className="font-medium text-sm truncate">{retailerName}</p>
-                   <p className="text-xs text-muted-foreground truncate">{retailerEmail}</p>
+                   <p className="font-medium text-sm truncate">{businessName}</p>
+                   <p className="text-xs text-muted-foreground truncate">{businessEmail}</p>
                 </div>
              </div>
           </div>
@@ -134,7 +134,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         onSuccess={() => {
           // Refresh the page to show new product
           // If on products page, it will reload and fetch updated products
-          if (location === "/retailer/products") {
+          if (location === "/business/products") {
             window.location.reload();
           } else {
             // If on dashboard, just reload to update stats
@@ -149,7 +149,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         onOpenChange={setCreateServiceOpen}
         onSuccess={() => {
           // Refresh the page to show new service
-          if (location === "/retailer/products") {
+          if (location === "/business/products") {
             window.location.reload();
           } else {
             // If on dashboard, just reload to update stats

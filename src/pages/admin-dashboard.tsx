@@ -8,7 +8,7 @@ import { Link } from "wouter";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-interface PendingRetailer {
+interface PendingBusiness {
   id: string;
   business_name: string;
   email: string;
@@ -21,7 +21,8 @@ interface PendingProduct {
   name: string;
   category: string;
   price: number;
-  retailerid: string;
+  businessid: string; // Formerly retailerid
+  retailerid?: string; // Legacy support
   createdAt?: string;
 }
 
@@ -30,13 +31,14 @@ interface PendingService {
   name: string;
   category: string;
   price: number;
-  retailer_name?: string;
+  business_name?: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   created_at: string;
 }
 
 export default function AdminDashboard() {
   useRequireRole("admin", "/admin");
-  const [pendingRetailers, setPendingRetailers] = useState<PendingRetailer[]>([]);
+  const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>([]);
   const [pendingProducts, setPendingProducts] = useState<PendingProduct[]>([]);
   const [pendingServices, setPendingServices] = useState<PendingService[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,18 +47,18 @@ export default function AdminDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [retRes, prodRes, servRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/retailers/pending`, { credentials: "include" }),
+      const [busRes, prodRes, servRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/businesses/pending`, { credentials: "include" }),
         fetch(`${API_BASE_URL}/products/pending`, { credentials: "include" }),
         fetch(`${API_BASE_URL}/services/pending`, { credentials: "include" }),
       ]);
-      const retData = await retRes.json();
+      const busData = await busRes.json();
       const prodData = await prodRes.json();
       const servData = await servRes.json();
-      if (!retRes.ok || !retData.success) throw new Error(retData.message || "Retailers load failed");
+      if (!busRes.ok || !busData.success) throw new Error(busData.message || "Businesses load failed");
       if (!prodRes.ok || !prodData.success) throw new Error(prodData.message || "Products load failed");
       if (!servRes.ok || !servData.success) throw new Error(servData.message || "Services load failed");
-      setPendingRetailers(retData.data);
+      setPendingBusinesses(busData.data);
       setPendingProducts(prodData.data);
       setPendingServices(servData.data || []);
     } catch (err: any) {
@@ -113,14 +115,14 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Retailers</CardTitle>
+              <CardTitle className="text-sm font-medium">Pending Businesses</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{pendingRetailers.length}</div>
+              <div className="text-2xl font-bold">{pendingBusinesses.length}</div>
               <p className="text-xs text-muted-foreground">Awaiting approval</p>
-              {pendingRetailers.length > 0 && (
-                <Link href="/admin/retailers">
+              {pendingBusinesses.length > 0 && (
+                <Link href="/admin/businesses">
                   <Button variant="link" className="p-0 h-auto mt-2">
                     View all →
                   </Button>
@@ -147,7 +149,7 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {!loading && !error && pendingProducts.length === 0 && pendingRetailers.length === 0 && pendingServices.length === 0 && (
+        {!loading && !error && pendingProducts.length === 0 && pendingBusinesses.length === 0 && pendingServices.length === 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-12">
@@ -159,7 +161,7 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {!loading && !error && (pendingProducts.length > 0 || pendingRetailers.length > 0 || pendingServices.length > 0) && (
+        {!loading && !error && (pendingProducts.length > 0 || pendingBusinesses.length > 0 || pendingServices.length > 0) && (
           <div className="grid gap-6 lg:grid-cols-3">
             {pendingProducts.length > 0 && (
               <Card>
@@ -215,26 +217,26 @@ export default function AdminDashboard() {
               </Card>
             )}
 
-            {pendingRetailers.length > 0 && (
+            {pendingBusinesses.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Pending Retailers</CardTitle>
+                  <CardTitle>Recent Pending Businesses</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {pendingRetailers.slice(0, 5).map((r) => (
-                    <div key={r.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                  {pendingBusinesses.slice(0, 5).map((b) => (
+                    <div key={b.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                       <div className="flex-1">
-                        <div className="font-semibold">{r.business_name}</div>
+                        <div className="font-semibold">{b.business_name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {r.username} • {r.email}
+                          {b.username} • {b.email}
                         </div>
                       </div>
                     </div>
                   ))}
-                  {pendingRetailers.length > 5 && (
-                    <Link href="/admin/retailers">
+                  {pendingBusinesses.length > 5 && (
+                    <Link href="/admin/businesses">
                       <Button variant="outline" className="w-full">
-                        View all {pendingRetailers.length} retailers →
+                        View all {pendingBusinesses.length} businesses →
                       </Button>
                     </Link>
                   )}

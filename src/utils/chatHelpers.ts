@@ -5,10 +5,10 @@ import { initializeFirebaseAuth, auth } from "@/lib/firebase";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 /**
- * Start a chat with a retailer
+ * Start a chat with a business
  */
-export async function startChatWithRetailer(
-  retailerId: string,
+export async function startChatWithBusiness(
+  businessId: string,
   currentUser: { id: string; username: string; role: string },
   navigate: (path: string) => void
 ) {
@@ -28,33 +28,33 @@ export async function startChatWithRetailer(
       throw new Error("Firebase authentication failed - please enable Anonymous Authentication in Firebase Console");
     }
     
-    console.log("Step 2: Getting retailer info...");
-    // Get retailer's user_id
-    const res = await fetch(`${API_BASE_URL}/retailer/${retailerId}/user`, {
+    console.log("Step 2: Getting business info...");
+    // Get business's user_id
+    const res = await fetch(`${API_BASE_URL}/business/${businessId}/user`, {
       credentials: "include",
     });
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      throw new Error(data.message || "Failed to get retailer information");
+      throw new Error(data.message || "Failed to get business information");
     }
 
-    const retailerUserId = data.data.userId;
-    const retailerName = data.data.businessName;
+    const businessUserId = data.data.userId;
+    const businessName = data.data.businessName;
 
     console.log("Step 3: Creating chat room...", {
       userId1: currentUser.id,
-      userId2: retailerUserId,
+      userId2: businessUserId,
     });
 
     // Create or get chat room
     const roomId = await getOrCreateChatRoom(
       currentUser.id,
-      retailerUserId,
+      businessUserId,
       currentUser.username,
-      retailerName,
+      businessName,
       currentUser.role,
-      "retailer",
+      "business",
       "buyer-seller"
     );
 

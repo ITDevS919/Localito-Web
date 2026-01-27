@@ -12,14 +12,16 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 interface Order {
   id: string;
   user_id: string;
-  retailer_id: string;
+  business_id: string; // Formerly retailer_id
+  retailer_id?: string; // Legacy support
   status: string;
   total: number;
   created_at: string;
   updated_at: string;
   customer_name: string;
   customer_email: string;
-  retailer_name: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   item_count: number;
   items: Array<{
     id: string;
@@ -231,8 +233,8 @@ export default function AdminOrdersPage() {
                       <p className="text-xs text-muted-foreground">{order.customer_email}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium mb-1">Retailer</p>
-                      <p className="text-sm text-muted-foreground">{order.retailer_name}</p>
+                      <p className="text-sm font-medium mb-1">Business</p>
+                      <p className="text-sm text-muted-foreground">{order.business_name || order.retailer_name}</p>
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t">

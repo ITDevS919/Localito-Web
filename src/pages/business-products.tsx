@@ -83,8 +83,6 @@ export default function BusinessProductsPage() {
           isNew: false,
           businessPostcode: undefined,
           businessCity: undefined,
-          retailerPostcode: undefined, // Legacy support
-          retailerCity: undefined, // Legacy support
           isApproved: p.isApproved,
           stock: parseInt(p.stock) || 0,
           description: p.description || "",

@@ -115,7 +115,7 @@ export function SupportChat() {
         roomId,
         user.id,
         user.username,
-        user.role as "customer" | "retailer" | "admin",
+        user.role as "customer" | "business" | "admin",
         supportAdminId,
         "Support Team",
         messageText.trim(),

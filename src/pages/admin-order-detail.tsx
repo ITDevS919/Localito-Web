@@ -23,20 +23,23 @@ interface OrderItem {
 interface Order {
   id: string;
   user_id: string;
-  retailer_id: string;
+  business_id: string; // Formerly retailer_id
+  retailer_id?: string; // Legacy support
   status: string;
   total: number;
   created_at: string;
   updated_at: string;
   customer_name: string;
   customer_email: string;
-  retailer_name: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   items: OrderItem[];
   discount_amount?: number;
   points_redeemed?: number;
   points_earned?: number;
   platform_commission?: number;
-  retailer_amount?: number;
+  business_amount?: number; // Formerly retailer_amount
+  retailer_amount?: number; // Legacy support
 }
 
 export default function AdminOrderDetailPage() {
@@ -148,10 +151,10 @@ export default function AdminOrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Customer & Retailer Info */}
+          {/* Customer & Business Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Customer & Retailer</CardTitle>
+              <CardTitle>Customer & Business</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -160,8 +163,8 @@ export default function AdminOrderDetailPage() {
                 <p className="text-sm text-muted-foreground">{order.customer_email}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Retailer</p>
-                <p className="mt-1">{order.retailer_name}</p>
+                <p className="text-sm font-medium text-muted-foreground">Business</p>
+                <p className="mt-1">{order.business_name || order.retailer_name}</p>
               </div>
             </CardContent>
           </Card>
@@ -226,8 +229,8 @@ export default function AdminOrderDetailPage() {
               )}
               {order.retailer_amount && (
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Retailer Amount</span>
-                  <span>£{Number(order.retailer_amount).toFixed(2)}</span>
+                  <span>Business Amount</span>
+                  <span>£{Number(order.business_amount || order.retailer_amount).toFixed(2)}</span>
                 </div>
               )}
               <div className="border-t pt-2 mt-2">

@@ -30,9 +30,9 @@ export default function LoginCustomerPage() {
               </Link>
             </div>
             <div className="text-sm text-center text-muted-foreground">
-              Are you a retailer?{" "}
-              <Link href="/login/retailer" className="text-primary hover:underline font-medium">
-                Retailer login
+              Are you a business?{" "}
+              <Link href="/login/business" className="text-primary hover:underline font-medium">
+                Business login
               </Link>
             </div>
           </CardFooter>

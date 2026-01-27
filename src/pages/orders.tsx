@@ -12,7 +12,8 @@ interface Order {
   status: string;
   total: number;
   created_at: string;
-  retailer_name: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   pickup_location?: string;
   points_earned?: number;
 }
@@ -73,7 +74,7 @@ export default function OrdersPage() {
                       </div>
                     </Link>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(order.created_at).toLocaleString()} • {order.retailer_name}
+                      {new Date(order.created_at).toLocaleString()} • {order.business_name || order.retailer_name}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

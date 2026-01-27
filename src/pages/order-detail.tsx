@@ -39,7 +39,8 @@ interface Order {
   status: string;
   created_at: string;
   updated_at: string;
-  retailer_name: string;
+  business_name: string; // Formerly retailer_name
+  retailer_name?: string; // Legacy support
   customer_name: string;
   customer_email: string;
   items: OrderItem[];
@@ -53,7 +54,8 @@ interface Order {
   points_earned?: number;
   stripe_payment_intent_id?: string;
   platform_commission?: number;
-  retailer_amount?: number;
+  business_amount?: number; // Formerly retailer_amount
+  retailer_amount?: number; // Legacy support
   booking_date?: string;
   booking_time?: string;
   booking_duration_minutes?: number;
@@ -88,7 +90,7 @@ export default function OrderDetailPage() {
         loadOrder();
       }
       
-      // Check if there are more payments to process (multi-retailer scenario)
+      // Check if there are more payments to process (multi-business scenario)
       if (params.get("checkMorePayments") === "true") {
         checkForRemainingPayments();
       }
@@ -416,8 +418,8 @@ export default function OrderDetailPage() {
                 <div className="flex items-start gap-3">
                   <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-semibold">Retailer</p>
-                    <p className="text-sm text-muted-foreground">{order.retailer_name}</p>
+                    <p className="font-semibold">Business</p>
+                    <p className="text-sm text-muted-foreground">{order.business_name || order.retailer_name}</p>
                   </div>
                 </div>
                 {order.pickup_location && (
@@ -620,7 +622,7 @@ export default function OrderDetailPage() {
                   <>
                     <img src={qrCodeData} alt="Order QR Code" className="w-64 h-64 border rounded-lg" />
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Show this QR code to the retailer when picking up your order
+                      Show this QR code to the business when picking up your order
                     </p>
                     <Button variant="outline" onClick={fetchQRCode} size="sm">
                       Regenerate QR Code

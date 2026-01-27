@@ -378,6 +378,27 @@ export default function BusinessPayoutsPage() {
     }
   };
 
+  const handleOpenStripeDashboard = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/business/stripe/dashboard-link`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success && data.data.url) {
+        window.open(data.data.url, '_blank');
+      } else {
+        throw new Error(data.message || "Failed to get Stripe dashboard link");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to open Stripe dashboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   const currencySymbol = (code?: string) => {
     switch ((code || "GBP").toUpperCase()) {
       case "USD":
@@ -759,6 +780,16 @@ export default function BusinessPayoutsPage() {
                     </Badge>
                   </div>
                 </div>
+                {stripeStatus.charges_enabled && stripeStatus.payouts_enabled && (
+                  <Button
+                    onClick={handleOpenStripeDashboard}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open Stripe Dashboard
+                  </Button>
+                )}
                 {(!stripeStatus.charges_enabled || !stripeStatus.payouts_enabled || !stripeStatus.details_submitted) && (
                   <div className="space-y-2">
                     <Button onClick={handleConnectStripe} disabled={loadingStripe} className="w-full">

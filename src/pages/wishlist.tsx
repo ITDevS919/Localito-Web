@@ -38,14 +38,16 @@ export default function WishlistPage() {
         id: p.product_id,
         name: p.name,
         price: parseFloat(p.price) || 0,  // Parse price as float
-        retailer: p.retailer_name || "Retailer",
+        business: p.business_name || "Business",
         image: (Array.isArray(p.images) && p.images[0]) || "/opengraph.jpg",  // Better array handling
         category: p.category || "",
         rating: parseFloat(p.average_rating) || 0,  // Parse rating as float
         reviews: parseInt(p.review_count) || 0,    // Parse reviews as integer
         pickupTime: "30 mins",
-        retailerPostcode: undefined,
-        retailerCity: undefined,
+        businessPostcode: undefined,
+        businessCity: undefined,
+        retailerPostcode: undefined, // Legacy support
+        retailerCity: undefined, // Legacy support
       }));
 
       setProducts(transformedProducts);

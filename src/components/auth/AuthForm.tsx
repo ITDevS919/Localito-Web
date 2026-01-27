@@ -20,7 +20,7 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  // Retailer-specific fields
+  // Business-specific fields
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [postcode, setPostcode] = useState("");
@@ -32,11 +32,11 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
   const isSignup = variant === "signup";
   const title =
     variant === "signup"
-      ? role === "retailer"
-        ? "Sign up as Retailer"
+      ? role === "business"
+        ? "Sign up as Business"
         : "Sign up as Customer"
-      : role === "retailer"
-        ? "Retailer Login"
+      : role === "business"
+        ? "Business Login"
         : "Customer Login";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,8 +58,8 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
       }
     }
 
-    // Validate retailer fields if signing up as retailer
-    if (isSignup && role === "retailer") {
+    // Validate business fields if signing up as business
+    if (isSignup && role === "business") {
       if (!businessName.trim()) {
         setError("Business name is required");
         return;
@@ -75,8 +75,8 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
       if (variant === "login") {
         await login(username, password);
       } else {
-        // Include retailer data if signing up as retailer
-        const retailerData = role === "retailer" ? {
+        // Include business data if signing up as business
+        const businessData = role === "business" ? {
           businessName: businessName.trim(),
           businessAddress: businessAddress.trim() || undefined,
           postcode: postcode.trim() || undefined,
@@ -84,7 +84,7 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
           phone: phone.trim() || undefined,
         } : undefined;
         
-        await signup(username, email, password, role, retailerData);
+        await signup(username, email, password, role, businessData);
       }
       onSuccess?.();
     } catch (err: any) {
@@ -100,8 +100,8 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
         <h1 className="text-2xl font-bold">{title}</h1>
         <p className="text-sm text-muted-foreground">
           {isSignup
-            ? role === "retailer"
-              ? "Create your retailer account"
+            ? role === "business"
+              ? "Create your business account"
               : "Create your customer account"
             : "Sign in to continue"}
         </p>
@@ -172,8 +172,8 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
           </div>
         )}
 
-        {/* Retailer-specific fields */}
-        {isSignup && role === "retailer" && (
+        {/* Business-specific fields */}
+        {isSignup && role === "business" && (
           <>
             <div className="space-y-2">
               <Label htmlFor="businessName">Business Name *</Label>

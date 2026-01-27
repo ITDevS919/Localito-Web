@@ -12,16 +12,16 @@ import CartPage from "@/pages/cart";
 import CheckoutPage from "@/pages/checkout";
 import OrdersPage from "@/pages/orders";
 import OrderDetailPage from "@/pages/order-detail";
-import RetailerDashboard from "@/pages/retailer-dashboard";
-import RetailerProductsPage from "@/pages/retailer-products";
-import RetailerOrdersPage from "@/pages/retailer-orders";
-import RetailerOrderDetailPage from "@/pages/retailer-order-detail";
-import RetailerSettingsPage from "@/pages/retailer-settings";
-import RetailerSquareSettingsPage from "@/pages/retailer-square-settings";
-import RetailerAvailabilityPage from "@/pages/retailer-availability";
+import BusinessDashboard from "@/pages/business-dashboard";
+import BusinessProductsPage from "@/pages/business-products";
+import BusinessOrdersPage from "@/pages/business-orders";
+import BusinessOrderDetailPage from "@/pages/business-order-detail";
+import BusinessSettingsPage from "@/pages/business-settings";
+import BusinessSquareSettingsPage from "@/pages/business-square-settings";
+import BusinessAvailabilityPage from "@/pages/business-availability";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminProductsPage from "@/pages/admin-products";
-import AdminRetailersPage from "@/pages/admin-retailers";
+import AdminBusinessesPage from "@/pages/admin-businesses";
 import AdminOrdersPage from "@/pages/admin-orders";
 import AdminOrderDetailPage from "@/pages/admin-order-detail";
 import AdminCategoriesPage from "@/pages/admin-categories";
@@ -29,25 +29,25 @@ import AdminReviewsPage from "@/pages/admin-reviews";
 import AdminSettingsPage from "@/pages/admin-settings";
 import LoginAdminPage from "@/pages/login-admin";
 import LoginCustomerPage from "@/pages/login-customer";
-import LoginRetailerPage from "@/pages/login-retailer";
+import LoginBusinessPage from "@/pages/login-business";
 import SignupCustomerPage from "@/pages/signup-customer";
-import SignupRetailerPage from "@/pages/signup-retailer";
+import SignupBusinessPage from "@/pages/signup-business";
 import NotFound from "@/pages/not-found";
 import WishlistPage from "@/pages/wishlist";
-import RetailerProfilePage from "@/pages/retailer-profile";
-import RetailerPostsPage from "@/pages/retailer-posts";
-import RetailerPayoutsPage from "@/pages/retailer-payouts";
-import RetailerQRScannerPage from "@/pages/retailer-qr-scanner";
+import BusinessProfilePage from "@/pages/business-profile";
+import BusinessPostsPage from "@/pages/business-posts";
+import BusinessPayoutsPage from "@/pages/business-payouts";
+import BusinessQRScannerPage from "@/pages/business-qr-scanner";
 import AdminDiscountCodesPage from "@/pages/admin-discount-codes";
 import AdminMessagesPage from "@/pages/admin-messages";
 import AdminPayoutVerificationsPage from "@/pages/admin-payout-verifications";
 import UserPointsPage from "@/pages/user-points";
 import MessagesPage from "@/pages/messages";
-import RetailerMessagesPage  from "@/pages/retailer-messages";
+import BusinessMessagesPage from "@/pages/business-messages";
 import { SupportChat } from "@/components/chat/SupportChat";
 import PrivacyPage from "@/pages/privacy";
 import TermsConsumersPage from "@/pages/terms-consumers";
-import TermsRetailersPage from "@/pages/terms-retailers";
+import TermsBusinessesPage from "@/pages/terms-businesses";
 
 function Router() {
   return (
@@ -61,9 +61,9 @@ function Router() {
       <Route path="/login/customer" component={LoginCustomerPage} />
       <Route path="/signup/customer" component={SignupCustomerPage} />
 
-      {/* Retailer auth */}
-      <Route path="/login/retailer" component={LoginRetailerPage} />
-      <Route path="/signup/retailer" component={SignupRetailerPage} />
+      {/* Business auth */}
+      <Route path="/login/business" component={LoginBusinessPage} />
+      <Route path="/signup/business" component={SignupBusinessPage} />
 
       {/* Admin auth */}
       <Route path="/admin" component={LoginAdminPage} />
@@ -76,26 +76,26 @@ function Router() {
       <Route path="/wishlist" component={WishlistPage} />
       <Route path="/points" component={UserPointsPage} />
       
-      {/* Retailer Routes */}
-      <Route path="/retailer/dashboard" component={RetailerDashboard} />
-      <Route path="/retailer/products" component={RetailerProductsPage} />
-      <Route path="/retailer/orders" component={RetailerOrdersPage} />
-      <Route path="/retailer/orders/:id" component={RetailerOrderDetailPage} />
-      <Route path="/retailer/settings" component={RetailerSettingsPage} />
-      <Route path="/retailer/square-settings" component={RetailerSquareSettingsPage} />
-      <Route path="/retailer/availability" component={RetailerAvailabilityPage} />
-      <Route path="/retailer/posts" component={RetailerPostsPage} />
-      <Route path="/retailer/payouts" component={RetailerPayoutsPage} />
-      <Route path="/retailer/messages" component={RetailerMessagesPage} />
-      <Route path="/retailer/qr-scanner" component={RetailerQRScannerPage} />
+      {/* Business Routes */}
+      <Route path="/business/dashboard" component={BusinessDashboard} />
+      <Route path="/business/products" component={BusinessProductsPage} />
+      <Route path="/business/orders" component={BusinessOrdersPage} />
+      <Route path="/business/orders/:id" component={BusinessOrderDetailPage} />
+      <Route path="/business/settings" component={BusinessSettingsPage} />
+      <Route path="/business/square-settings" component={BusinessSquareSettingsPage} />
+      <Route path="/business/availability" component={BusinessAvailabilityPage} />
+      <Route path="/business/posts" component={BusinessPostsPage} />
+      <Route path="/business/payouts" component={BusinessPayoutsPage} />
+      <Route path="/business/messages" component={BusinessMessagesPage} />
+      <Route path="/business/qr-scanner" component={BusinessQRScannerPage} />
       
-      {/* Public retailer profile - MUST be last to avoid matching other routes */}
-      <Route path="/retailer/:retailerId" component={RetailerProfilePage} />
+      {/* Public business profile - MUST be last to avoid matching other routes */}
+      <Route path="/business/:businessId" component={BusinessProfilePage} />
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/products" component={AdminProductsPage} />
-      <Route path="/admin/retailers" component={AdminRetailersPage} />
+      <Route path="/admin/businesses" component={AdminBusinessesPage} />
       <Route path="/admin/orders/:id" component={AdminOrderDetailPage} />
       <Route path="/admin/orders" component={AdminOrdersPage} />
       <Route path="/admin/categories" component={AdminCategoriesPage} />
@@ -106,7 +106,7 @@ function Router() {
       <Route path="/admin/payout-verifications" component={AdminPayoutVerificationsPage} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/products" component={AdminProductsPage} />
-      <Route path="/admin/retailers" component={AdminRetailersPage} />
+      <Route path="/admin/businesses" component={AdminBusinessesPage} />
       <Route path="/admin/messages" component={AdminMessagesPage} />
       <Route path="/admin/discount-codes" component={AdminDiscountCodesPage} />
 
@@ -116,7 +116,7 @@ function Router() {
       {/* Legal */}
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/terms/consumers" component={TermsConsumersPage} />
-      <Route path="/terms/retailers" component={TermsRetailersPage} />
+      <Route path="/terms/businesses" component={TermsBusinessesPage} />
 
       <Route component={NotFound} />
     </Switch>

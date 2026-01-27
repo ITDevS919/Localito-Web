@@ -40,7 +40,7 @@ export function Navbar() {
     }
   };
 
-  const retailerTarget = "/login/retailer";
+  const businessTarget = "/login/business";
 
   const handleLogout = async () => {
     await logout();
@@ -67,8 +67,8 @@ export function Navbar() {
           <Link href="/search?category=all" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             Marketplace
           </Link>
-          <Link href={retailerTarget} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            For Retailers
+          <Link href={businessTarget} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            For Businesses
           </Link>
           <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             Our Story
@@ -113,8 +113,8 @@ export function Navbar() {
                     href={
                       user.role === "admin"
                         ? "/admin/dashboard"
-                        : user.role === "retailer"
-                        ? "/retailer/dashboard"
+                        : user.role === "business"
+                        ? "/business/dashboard"
                         : "/orders"
                     }
                     className="cursor-pointer"

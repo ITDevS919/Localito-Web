@@ -14,7 +14,7 @@ interface TimeSlot {
 }
 
 interface DateTimePickerProps {
-  retailerId: string;
+  businessId: string;
   durationMinutes: number;
   onSelect: (date: string, time: string) => void;
   selectedDate?: string;
@@ -23,7 +23,7 @@ interface DateTimePickerProps {
 }
 
 export function DateTimePicker({
-  retailerId,
+  businessId,
   durationMinutes,
   onSelect,
   selectedDate,
@@ -49,7 +49,7 @@ export function DateTimePicker({
 
   // Memoize loadAvailableSlots to prevent unnecessary re-renders
   const loadAvailableSlots = useCallback(async () => {
-    if (!selectedDateState || !retailerId || !durationMinutes) return;
+    if (!selectedDateState || !businessId || !durationMinutes) return;
 
     setLoadingSlots(true);
     setError(null);
@@ -59,7 +59,7 @@ export function DateTimePicker({
       const endDate = format(addDays(selectedDateState, 7), "yyyy-MM-dd");
 
       const res = await fetch(
-        `${API_BASE_URL}/retailers/${retailerId}/availability?startDate=${startDate}&endDate=${endDate}&durationMinutes=${durationMinutes}&slotIntervalMinutes=30`,
+        `${API_BASE_URL}/businesses/${businessId}/availability?startDate=${startDate}&endDate=${endDate}&durationMinutes=${durationMinutes}&slotIntervalMinutes=30`,
         { credentials: "include" }
       );
 
@@ -75,9 +75,9 @@ export function DateTimePicker({
         (slot: TimeSlot) => slot.date === dateStr && slot.available
       );
 
-      // If no slots at all in the response, retailer likely hasn't set up schedule
+      // If no slots at all in the response, business likely hasn't set up schedule
       if (allSlots.length === 0) {
-        setError("This retailer hasn't set up their availability schedule yet. Please contact them to set up booking times.");
+        setError("This business hasn't set up their availability schedule yet. Please contact them to set up booking times.");
         setAvailableSlots([]);
       } else if (slotsForDate.length === 0) {
         // If there are slots but none for this date, show a different message
@@ -94,7 +94,7 @@ export function DateTimePicker({
     } finally {
       setLoadingSlots(false);
     }
-  }, [selectedDateState, retailerId, durationMinutes]);
+  }, [selectedDateState, businessId, durationMinutes]);
 
   // Load available slots when date is selected
   useEffect(() => {
@@ -159,11 +159,11 @@ export function DateTimePicker({
                 This may be because:
               </p>
               <ul className="text-xs list-disc list-inside space-y-1 ml-2">
-                <li>The retailer hasn't set up their availability schedule</li>
+                <li>The business hasn't set up their availability schedule</li>
                 <li>All slots for this date are already booked</li>
-                <li>This date is blocked by the retailer</li>
+                <li>This date is blocked by the business</li>
               </ul>
-              <p className="text-xs mt-2">Please select another date or contact the retailer.</p>
+              <p className="text-xs mt-2">Please select another date or contact the business.</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
