@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: ["localito.com"],
     port: 5173,
     proxy: {
       "/api": {
