@@ -7,10 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Filter, MapPin, Loader2 } from "lucide-react";
+import { Filter, MapPin, Loader2, Search, Navigation } from "lucide-react";
 import { useLocation } from "wouter";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 interface Category {
   id: string;
   name: string;
@@ -42,13 +50,19 @@ export default function SearchPage() {
   const [filterLocation, setFilterLocation] = useState(locationQuery);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-  const [sortBy] = useState("featured");
+  const [sortBy, setSortBy] = useState("featured");
   const [products, setProducts] = useState<Product[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "products" | "services">("all");
+
+  // Use my location (geolocation) for nearest/furthest
+  const [useMyLocation, setUseMyLocation] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const [categories, setCategories] = useState<Category[]>([]);
@@ -74,10 +88,48 @@ export default function SearchPage() {
 
   // Update local state when URL params change
   useEffect(() => {
-    console.log("[SearchPage] Updating local state from URL params:", { query, locationQuery });
     setSearchInput(query);
     setFilterLocation(locationQuery);
   }, [query, locationQuery]);
+
+  // Use my location: request geolocation when toggle is turned on
+  const handleUseMyLocationChange = (checked: boolean) => {
+    if (!checked) {
+      setUseMyLocation(false);
+      setUserCoords(null);
+      setLocationError(null);
+      return;
+    }
+    setLocationError(null);
+    setIsLoadingLocation(true);
+    if (!navigator.geolocation) {
+      setLocationError("Location not supported by your browser");
+      setIsLoadingLocation(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setUseMyLocation(true);
+        setLocationError(null);
+        setIsLoadingLocation(false);
+      },
+      (err) => {
+        setUseMyLocation(false);
+        setUserCoords(null);
+        setLocationError(err.code === 1 ? "Location denied" : "Location unavailable");
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  // Reset distance sort when "Use my location" is turned off
+  useEffect(() => {
+    if (!userCoords && (sortBy === "distance-nearest" || sortBy === "distance-furthest")) {
+      setSortBy("featured");
+    }
+  }, [userCoords, sortBy]);
   
   // Listen for URL changes (browser back/forward, direct navigation)
   useEffect(() => {
@@ -96,27 +148,27 @@ export default function SearchPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Fetch products when URL params change
+  // Fetch products when URL params or user location change
   useEffect(() => {
-    console.log("[SearchPage] useEffect triggered with:", { query, locationQuery, location });
-    
     const fetchProducts = async () => {
       setLoading(true);
       setError(null);
       try {
         const params = new URLSearchParams();
-        // Include search parameter if query exists
         if (query && query.trim()) {
           params.append("search", query.trim());
         }
-        // Include location and always use radiusKm=0 for text-based search
-        if (locationQuery && locationQuery.trim()) {
+        // Use lat/lng/radius when "Use my location" is on; otherwise text location
+        if (userCoords) {
+          params.append("latitude", String(userCoords.lat));
+          params.append("longitude", String(userCoords.lng));
+          params.append("radiusKm", "50"); // 50 km default radius for "near me"
+        } else if (locationQuery && locationQuery.trim()) {
           params.append("location", locationQuery.trim());
-          params.append("radiusKm", "0"); // Always use text-based search
+          params.append("radiusKm", "0");
         }
-        
+
         const apiUrl = `${API_BASE_URL}/products${params.toString() ? `?${params.toString()}` : ""}`;
-        console.log("[SearchPage] Fetching products from:", apiUrl);
         
         const res = await fetch(apiUrl, {
           method: 'GET',
@@ -214,10 +266,9 @@ export default function SearchPage() {
       }
     };
 
-    // Always fetch when component mounts or URL changes
     fetchProducts();
     fetchServices();
-  }, [query, locationQuery, location, API_BASE_URL]);
+  }, [query, locationQuery, location, API_BASE_URL, userCoords]);
 
   // Handle category toggle
   const handleCategoryToggle = (categoryId: string) => {
@@ -228,21 +279,38 @@ export default function SearchPage() {
     );
   };
 
-  // Handle apply filters
-  const handleApplyFilters = () => {
-    console.log("[SearchPage] handleApplyFilters called with:", { searchInput, filterLocation, selectedCategories });
+  // Build search URL from current state
+  const buildSearchUrl = (overrides?: { q?: string; loc?: string; categories?: string[] }) => {
     const params = new URLSearchParams();
-    if (searchInput.trim()) params.append("q", searchInput.trim());
-    if (filterLocation.trim()) {
-      params.append("loc", filterLocation.trim());
-    }
-    if (selectedCategories.length > 0) {
-      params.append("categories", selectedCategories.join(","));
-    }
+    const q = overrides?.q !== undefined ? overrides.q : searchInput.trim();
+    const loc = overrides?.loc !== undefined ? overrides.loc : filterLocation.trim();
+    const cats = overrides?.categories ?? selectedCategories;
+    if (q) params.append("q", q);
+    if (loc) params.append("loc", loc);
+    if (cats.length > 0) params.append("categories", cats.join(","));
     const queryString = params.toString();
-    const newUrl = `/search${queryString ? `?${queryString}` : ""}`;
-    console.log("[SearchPage] Updating URL to:", newUrl);
-    setLocation(newUrl);
+    return `/search${queryString ? `?${queryString}` : ""}`;
+  };
+
+  const handleMarketplaceSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocation(buildSearchUrl());
+  };
+
+  const handleApplyFilters = () => {
+    setLocation(buildSearchUrl());
+  };
+
+  // Quick filter pills: apply sort or price in one click
+  const handleQuickFilter = (filter: "nearest" | "top-rated" | "under-50") => {
+    if (filter === "nearest") {
+      setSortBy("distance-nearest");
+      if (!userCoords) handleUseMyLocationChange(true);
+    } else if (filter === "top-rated") {
+      setSortBy("rating");
+    } else if (filter === "under-50") {
+      setPriceRange([0, 50]);
+    }
   };
 
   // Filter and sort products
@@ -280,13 +348,19 @@ export default function SearchPage() {
           return bNew - aNew;
         });
         break;
+      case "distance-nearest":
+        // API already returns nearest first when using user location; keep order
+        break;
+      case "distance-furthest":
+        // Reverse so furthest first (when using "Use my location")
+        if (userCoords) filtered.reverse();
+        break;
       default: // featured
-        // Keep original order
         break;
     }
 
     return filtered;
-  }, [products, selectedCategories, priceRange, sortBy]);
+  }, [products, selectedCategories, priceRange, sortBy, userCoords]);
 
   console.log("Filtered and sorted products:", filteredAndSortedProducts);
 
@@ -295,86 +369,153 @@ export default function SearchPage() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
-        {/* Search Header */}
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-8">
+        {/* Marketplace search bar - prominent, modern */}
+        <form onSubmit={handleMarketplaceSearch} className="mb-10">
+          <div className="rounded-2xl border border-border bg-card shadow-sm p-4 md:p-5 flex flex-col sm:flex-row gap-3 md:gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search products and services..."
+                className="pl-11 h-12 text-base border-0 bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+                aria-label="Search"
+              />
+            </div>
+            <div className="flex-1 sm:max-w-[220px] relative">
+              <MapPin className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                type="text"
+                value={filterLocation}
+                onChange={(e) => setFilterLocation(e.target.value)}
+                placeholder="Postcode or city"
+                className="pl-11 h-12 text-base border-0 bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+                aria-label="Location"
+                disabled={useMyLocation}
+              />
+            </div>
+            <Button type="submit" size="lg" className="h-12 px-8 bg-primary hover:bg-primary/90 rounded-xl shrink-0">
+              <Search className="h-5 w-5 sm:mr-2" />
+              <span className="hidden sm:inline">Search</span>
+            </Button>
+          </div>
+          {/* Use my location toggle */}
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50 mt-2">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="use-my-location"
+                checked={useMyLocation}
+                onCheckedChange={handleUseMyLocationChange}
+                disabled={isLoadingLocation}
+              />
+              <Label htmlFor="use-my-location" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                <Navigation className="h-4 w-4 text-muted-foreground" />
+                {isLoadingLocation ? "Getting location…" : useMyLocation ? "Using your location" : "Use my location"}
+              </Label>
+            </div>
+            {locationError && (
+              <span className="text-xs text-destructive" role="alert">{locationError}</span>
+            )}
+            {useMyLocation && (
+              <span className="text-xs text-muted-foreground">Nearest first within 50 km — change sort to see furthest</span>
+            )}
+          </div>
+        </form>
+
+        {/* Results header with count and sort */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-heading text-3xl font-bold text-primary">
-              {query ? `Results for "${query}"` : "All Products"}
+            <h1 className="font-heading text-2xl md:text-3xl font-bold text-primary">
+              {query ? `Results for "${query}"` : "Marketplace"}
             </h1>
-            <p className="text-muted-foreground">
-              {products.length > 0 ? (
+            <p className="text-muted-foreground text-sm mt-1">
+              {products.length > 0 || services.length > 0 ? (
                 locationQuery 
-                  ? `Showing ${products.length} result${products.length !== 1 ? "s" : ""} near ${locationQuery}`
-                  : `Showing ${products.length} result${products.length !== 1 ? "s" : ""}`
+                  ? `${products.length + services.length} result${products.length + services.length !== 1 ? "s" : ""} near ${locationQuery}`
+                  : `${products.length + services.length} result${products.length + services.length !== 1 ? "s" : ""}`
               ) : (
                 locationQuery 
-                  ? `No results found near ${locationQuery}`
-                  : "No results found"
+                  ? `No results near ${locationQuery}`
+                  : "No results yet — try a search above"
               )}
             </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Sort by</span>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px] rounded-lg border-border bg-background">
+                <SelectValue placeholder="Featured" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="featured">Featured</SelectItem>
+                {userCoords && (
+                  <>
+                    <SelectItem value="distance-nearest">Nearest</SelectItem>
+                    <SelectItem value="distance-furthest">Furthest</SelectItem>
+                  </>
+                )}
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+                <SelectItem value="rating">Top Rated</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-4">
-          {/* Sidebar Filters */}
-          <aside className="space-y-6 lg:col-span-1">
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2 font-semibold text-lg">
-                <Filter className="h-5 w-5" /> Filters
-              </div>
-
-              {/* Postcode or City Filter */}
-              <div className="mb-6 space-y-3">
-                <Label className="text-sm font-medium">Postcode or City</Label>
-                <div className="relative">
-                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                   <Input 
-                     className="pl-9" 
-                     placeholder="e.g. SW1A 1AA or London" 
-                     value={filterLocation}
-                     onChange={(e) => setFilterLocation(e.target.value)}
-                  />
+          {/* Sidebar Filters – modern layout */}
+          <aside className="lg:col-span-1">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
+              {/* Quick Filters – pill buttons */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  QUICK FILTERS
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFilter("nearest")}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      sortBy === "distance-nearest" && userCoords
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    Nearest
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFilter("top-rated")}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      sortBy === "rating"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    Top Rated
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFilter("under-50")}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      priceRange[1] <= 50
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    Under £50
+                  </button>
                 </div>
               </div>
 
-              {/* Categories Filter */}
-              <div className="mb-6 space-y-3">
-                <div>
-                <Label className="text-sm font-medium">Categories</Label>
-                </div>
-                {loadingCategories ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {categories.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No categories available</p>
-                    ) : (
-                      categories.map((cat) => (
-                        <div key={cat.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`cat-${cat.id}`}
-                            checked={selectedCategories.includes(cat.id)}
-                            onCheckedChange={() => handleCategoryToggle(cat.id)}
-                          />
-                          <label
-                            htmlFor={`cat-${cat.id}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                          >
-                            {cat.name}
-                          </label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Price Filter */}
-              <div className="mb-6 space-y-3">
-                <Label className="text-sm font-medium">Price Range</Label>
+              {/* Price Range – match reference order */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  PRICE RANGE
+                </h3>
                 <Slider 
                   value={priceRange} 
                   onValueChange={(vals) => setPriceRange([vals[0], vals[1]])}
@@ -385,6 +526,56 @@ export default function SearchPage() {
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>£{priceRange[0]}</span>
                   <span>£{priceRange[1]}</span>
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  CATEGORIES
+                </h3>
+                {loadingCategories ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {categories.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No categories available</p>
+                    ) : (
+                      categories.map((cat) => (
+                        <label
+                          key={cat.id}
+                          htmlFor={`cat-${cat.id}`}
+                          className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 hover:bg-muted/50"
+                        >
+                          <Checkbox 
+                            id={`cat-${cat.id}`}
+                            checked={selectedCategories.includes(cat.id)}
+                            onCheckedChange={() => handleCategoryToggle(cat.id)}
+                          />
+                          <span className="text-sm font-medium select-none">{cat.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Location */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  LOCATION
+                </h3>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9 h-10 rounded-lg border-border bg-muted/30"
+                    placeholder="e.g. SW1A 1AA or London"
+                    value={filterLocation}
+                    onChange={(e) => setFilterLocation(e.target.value)}
+                    disabled={useMyLocation}
+                  />
                 </div>
               </div>
 

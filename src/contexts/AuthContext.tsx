@@ -121,7 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Redirect based on role
     if (data.data.role === "business") {
-      setLocation("/business/dashboard");
+      // New business signups go to onboarding wizard
+      setLocation("/business/onboarding");
     } else if (data.data.role === "admin") {
       setLocation("/admin/dashboard");
     } else {

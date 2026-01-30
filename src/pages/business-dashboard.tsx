@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, ShoppingBag, Users, TrendingUp, Loader2, ExternalLink } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { Badge } from "@/components/ui/badge";
+import { OnboardingChecklist } from "@/components/business/OnboardingChecklist";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -128,8 +129,13 @@ export default function BusinessDashboard() {
         )}
       </div>
 
+      {/* Onboarding Checklist */}
+      <div className="mb-8">
+        <OnboardingChecklist />
+      </div>
+
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8" data-tour="dashboard-stats">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>

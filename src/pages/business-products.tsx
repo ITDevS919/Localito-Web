@@ -13,7 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Package, CheckCircle2, XCircle, Edit, Trash2 } from "lucide-react";
+import { Loader2, Package, CheckCircle2, XCircle, Edit, Trash2, CreditCard, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { CreateProductModal } from "@/components/product/CreateProductModal";
 import { CreateServiceModal } from "@/components/product/CreateServiceModal";
@@ -54,6 +55,7 @@ export default function BusinessProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteType, setDeleteType] = useState<'product' | 'service'>('product');
+  const [squareConnected, setSquareConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -121,7 +123,22 @@ export default function BusinessProductsPage() {
       }
     };
 
+    const fetchOnboardingStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/business/onboarding-status`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.data) {
+          setSquareConnected(data.data.squareConnected);
+        }
+      } catch {
+        // Non-blocking
+      }
+    };
+
     fetchData();
+    fetchOnboardingStatus();
   }, []);
 
   const approvedCount = products.filter((p) => p.isApproved).length + services.filter((s) => s.isApproved).length;
@@ -332,6 +349,36 @@ export default function BusinessProductsPage() {
 
         {!loading && !error && (
           <>
+            {/* Square Integration - show for first-time users (no products yet) */}
+            {totalItems === 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Square Integration
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Connect your Square POS to sync inventory automatically when you add products. You can also add products manually below.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {squareConnected ? (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="text-sm font-medium">Square connected – stock will sync for linked products</span>
+                    </div>
+                  ) : (
+                    <Button asChild variant="default" className="w-full sm:w-auto">
+                      <Link href="/business/square-settings" className="inline-flex items-center">
+                        Connect Square
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {totalItems === 0 ? (
               <Card>
                 <CardContent className="pt-6">

@@ -13,6 +13,7 @@ import CheckoutPage from "@/pages/checkout";
 import OrdersPage from "@/pages/orders";
 import OrderDetailPage from "@/pages/order-detail";
 import BusinessDashboard from "@/pages/business-dashboard";
+import BusinessOnboardingPage from "@/pages/business-onboarding";
 import BusinessProductsPage from "@/pages/business-products";
 import BusinessOrdersPage from "@/pages/business-orders";
 import BusinessOrderDetailPage from "@/pages/business-order-detail";
@@ -47,6 +48,12 @@ import BusinessMessagesPage from "@/pages/business-messages";
 import { SupportChat } from "@/components/chat/SupportChat";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
+import CookiesPage from "@/pages/cookies";
+import ForBusinessesPage from "@/pages/for-businesses";
+import AboutPage from "@/pages/about";
+import FAQPage from "@/pages/faq";
+import ContactPage from "@/pages/contact";
+import DeleteAccountPage from "@/pages/delete-account";
 
 function Router() {
   return (
@@ -61,6 +68,7 @@ function Router() {
       <Route path="/signup/customer" component={SignupCustomerPage} />
 
       {/* Business auth */}
+      <Route path="/for-businesses" component={ForBusinessesPage} />
       <Route path="/login/business" component={LoginBusinessPage} />
       <Route path="/signup/business" component={SignupBusinessPage} />
 
@@ -76,6 +84,7 @@ function Router() {
       <Route path="/points" component={UserPointsPage} />
       
       {/* Business Routes */}
+      <Route path="/business/onboarding" component={BusinessOnboardingPage} />
       <Route path="/business/dashboard" component={BusinessDashboard} />
       <Route path="/business/products" component={BusinessProductsPage} />
       <Route path="/business/orders" component={BusinessOrdersPage} />
@@ -114,7 +123,14 @@ function Router() {
 
       {/* Legal */}
       <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/delete-account" component={DeleteAccountPage} />
       <Route path="/terms" component={TermsPage} />
+      <Route path="/cookies" component={CookiesPage} />
+      
+      {/* About, FAQ & Contact */}
+      <Route path="/about" component={AboutPage} />
+      <Route path="/faq" component={FAQPage} />
+      <Route path="/contact" component={ContactPage} />
       {/* Backwards-compatible routes pointing to unified terms */}
       <Route path="/terms/consumers" component={TermsPage} />
       <Route path="/terms/businesses" component={TermsPage} />

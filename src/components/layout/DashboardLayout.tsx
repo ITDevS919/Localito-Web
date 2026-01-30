@@ -6,6 +6,7 @@ import { ASSETS } from "@/lib/product";
 import { useAuth } from "@/contexts/AuthContext";
 import { CreateProductModal } from "@/components/product/CreateProductModal";
 import { CreateServiceModal } from "@/components/product/CreateServiceModal";
+import { TourProvider } from "@/contexts/TourContext";
 import { useState } from "react";
 
 interface DashboardLayoutProps {
@@ -22,15 +23,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const businessEmail = user?.email ?? "—";
 
   const navItems = [
-    { href: "/business/dashboard", label: "Overview", icon: LayoutDashboard },
-    { href: "/business/products", label: "Products", icon: Package },
-    { href: "/business/qr-scanner", label: "QR Code Scanner", icon: QrCode },
-    { href: "/business/orders", label: "Orders", icon: ShoppingBag },
-    { href: "/business/availability", label: "Availability", icon: Calendar },
-    { href: "/business/messages", label: "Messages", icon: MessageCircle },
-    { href: "/business/posts", label: "Posts", icon: MessageSquare },
-    { href: "/business/payouts", label: "Payouts", icon: Wallet },
-    { href: "/business/settings", label: "Settings", icon: Settings },
+    { href: "/business/dashboard", label: "Overview", icon: LayoutDashboard, tourId: undefined },
+    { href: "/business/products", label: "Products", icon: Package, tourId: "products" },
+    { href: "/business/qr-scanner", label: "QR Code Scanner", icon: QrCode, tourId: undefined },
+    { href: "/business/orders", label: "Orders", icon: ShoppingBag, tourId: undefined },
+    { href: "/business/availability", label: "Availability", icon: Calendar, tourId: undefined },
+    { href: "/business/messages", label: "Messages", icon: MessageCircle, tourId: undefined },
+    { href: "/business/posts", label: "Posts", icon: MessageSquare, tourId: undefined },
+    { href: "/business/payouts", label: "Payouts", icon: Wallet, tourId: "payouts" },
+    { href: "/business/settings", label: "Settings", icon: Settings, tourId: "settings" },
   ];
 
   // Get page title based on current route
@@ -50,6 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const showCreateButton = location === "/business/dashboard";
 
   return (
+    <TourProvider>
     <div className="min-h-screen bg-muted/20 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-background border-r border-border hidden md:flex flex-col fixed h-full">
@@ -80,12 +82,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               const isActive = location === item.href;
               return (
                 <Link key={item.href} href={item.href}>
-                  <div className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}>
+                  <div 
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                      isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                    {...(item.tourId && { "data-tour": item.tourId })}
+                  >
                     <Icon className="h-4 w-4" />
                     {item.label}
                   </div>
@@ -158,5 +163,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       />
     </div>
+    </TourProvider>
   );
 }

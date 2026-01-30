@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Store, MapPin, Phone, Mail, Loader2, CheckCircle2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Settings, Store, MapPin, Phone, Mail, Loader2, CheckCircle2, Upload, X, Image as ImageIcon, Info, CreditCard, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -194,9 +195,24 @@ export default function BusinessSettingsPage() {
     );
   }
 
+  const profileIncomplete =
+    !formData.businessName?.trim() ||
+    (!formData.postcode?.trim() && !formData.city?.trim());
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {profileIncomplete && (
+          <Alert className="border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription>
+              <span className="font-semibold text-foreground">Complete your business profile.</span>{" "}
+              Add the details below so customers can find you and your shop can be approved. You need:{" "}
+              <strong>Business name</strong>, and either <strong>postcode</strong> or <strong>city</strong>. Address and phone help customers reach you.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Banner Image Section */}
         <Card>
           <CardHeader>
@@ -299,6 +315,27 @@ export default function BusinessSettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Square Integration Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Square Integration
+            </CardTitle>
+            <CardDescription>
+              Connect your Square POS account to enable real-time stock synchronization.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="default" className="w-full sm:w-auto">
+              <Link href="/business/square-settings" className="inline-flex items-center">
+                Open Square settings
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Business Information Card */}
         <Card>
           <CardHeader>
@@ -332,6 +369,7 @@ export default function BusinessSettingsPage() {
                   <Input
                     id="businessName"
                     className="pl-9"
+                    placeholder="e.g. Pollen Bakery"
                     value={formData.businessName}
                     onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                     required
@@ -346,6 +384,7 @@ export default function BusinessSettingsPage() {
                   <Input
                     id="businessAddress"
                     className="pl-9"
+                    placeholder="e.g. 123 High Street"
                     value={formData.businessAddress}
                     onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
                   />
@@ -357,6 +396,7 @@ export default function BusinessSettingsPage() {
                   <Label htmlFor="postcode">Postcode</Label>
                   <Input
                     id="postcode"
+                    placeholder="e.g. M1 1AA"
                     value={formData.postcode}
                     onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
                   />
@@ -365,6 +405,7 @@ export default function BusinessSettingsPage() {
                   <Label htmlFor="city">City</Label>
                   <Input
                     id="city"
+                    placeholder="e.g. Manchester"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
@@ -379,6 +420,7 @@ export default function BusinessSettingsPage() {
                     id="phone"
                     className="pl-9"
                     type="tel"
+                    placeholder="e.g. 0161 234 5678"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />

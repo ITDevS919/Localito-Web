@@ -1,23 +1,332 @@
 import { Navbar } from "@/components/layout/Navbar";
-import { Hero } from "@/components/home/Hero";
+import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/product/ProductCard";
 import { CATEGORIES, ASSETS } from "@/lib/product";
-import { ArrowRight, Store, ShieldCheck, Leaf, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Product } from "@/lib/product";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { motion, useInView } from "framer-motion";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+// Animated counter component
+function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  useEffect(() => {
+    if (isInView) {
+      const duration = 2000;
+      const steps = 60;
+      const increment = value / steps;
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          setCount(value);
+          clearInterval(timer);
+        } else {
+          setCount(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    }
+  }, [isInView, value]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+}
+
+// CTA Section Component
+function CTASection() {
+  const sectionRef = useRef(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
+
+  return (
+    <section ref={sectionRef} className="py-32 px-6 bg-[#F9F8F5] dark:bg-slate-900">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate={isInView ? "visible" : "hidden"}
+        className="max-w-4xl mx-auto text-center space-y-8"
+      >
+        <motion.h2
+          variants={itemVariants}
+          className="text-5xl md:text-6xl font-bold tracking-tight text-slate-900 dark:text-white"
+        >
+          Ready to support local?
+        </motion.h2>
+        
+        <motion.p
+          variants={itemVariants}
+          className="text-xl text-slate-600 dark:text-slate-400"
+        >
+          Start your journey now.
+        </motion.p>
+
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-wrap gap-4 justify-center pt-8"
+        >
+          <Link href="/search">
+            <button className="px-8 py-4 bg-primary text-white font-bold rounded-full uppercase tracking-wide hover:shadow-xl hover:scale-105 transition-all duration-300">
+              Start Shopping
+            </button>
+          </Link>
+          <Link href="/signup/business">
+            <button className="px-8 py-4 bg-white text-slate-900 font-bold rounded-full uppercase tracking-wide border-2 border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all duration-300">
+              Register Your Business
+            </button>
+          </Link>
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+// Progress Section Component
+function ProgressSection() {
+  const sectionRef = useRef(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
+
+  // Sustainability projection data
+  const sustainabilityData = [
+    { period: 'Q1', co2Saved: 2.5, localSpend: 15 },
+    { period: 'Q2', co2Saved: 8.5, localSpend: 45 },
+    { period: 'Q3', co2Saved: 18, localSpend: 95 },
+    { period: 'Q4', co2Saved: 32, localSpend: 160 },
+    { period: 'Q1 27', co2Saved: 48, localSpend: 240 },
+    { period: 'Q2 27', co2Saved: 65, localSpend: 320 },
+  ];
+
+  return (
+    <section ref={sectionRef} className="py-24 px-6 bg-slate-50 dark:bg-slate-900/50">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center"
+        >
+          {/* Left side - Stats */}
+          <div className="space-y-12">
+            <motion.div variants={itemVariants}>
+              <span className="text-xs font-medium tracking-widest text-primary uppercase">Sustainability Impact</span>
+              <h2 className="text-5xl font-extrabold tracking-tighter mt-3">Measured Progress.</h2>
+            </motion.div>
+
+            <div className="space-y-8">
+              <motion.div variants={itemVariants} className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-6xl font-black text-primary">
+                    <AnimatedNumber value={50} suffix="+" />
+                  </span>
+                  <span className="text-xl font-medium text-slate-600 dark:text-slate-400">Businesses</span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  Independent retailers committed to launch
+                </p>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-6xl font-black text-slate-900 dark:text-white">
+                    <AnimatedNumber value={65} />
+                  </span>
+                  <span className="text-xl font-medium text-slate-600 dark:text-slate-400">tonnes</span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  Projected CO₂ saved by Q2 2027
+                </p>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-6xl font-black text-slate-900 dark:text-white">£<AnimatedNumber value={320} />k</span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  Projected local spend retained in community
+                </p>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-6xl font-black text-slate-900 dark:text-white">
+                    <AnimatedNumber value={6} />-<AnimatedNumber value={9} />
+                  </span>
+                  <span className="text-xl font-medium text-slate-600 dark:text-slate-400">%</span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  Fair commission rate (vs 10-25% big tech)
+                </p>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Right side - Sustainability Chart */}
+          <motion.div
+            variants={itemVariants}
+            className="relative bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-xl border border-slate-200 dark:border-slate-700"
+          >
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold tracking-widest text-primary uppercase">Sustainability Impact</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">2026 — 2027</span>
+              </div>
+              
+              {/* Dual-axis sustainability chart */}
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={sustainabilityData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                  >
+                    <defs>
+                      <linearGradient id="co2Gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#64748b" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="#64748b" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.2} vertical={false} />
+                    <XAxis 
+                      dataKey="period" 
+                      stroke="#94a3b8"
+                      style={{ fontSize: '10px', fontWeight: 600 }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+                    />
+                    <YAxis 
+                      yAxisId="left"
+                      stroke="hsl(221.2, 83.2%, 53.3%)"
+                      style={{ fontSize: '10px', fontWeight: 600 }}
+                      tickLine={false}
+                      axisLine={false}
+                      label={{ value: 'CO₂ (tonnes)', angle: -90, position: 'insideLeft', style: { fontSize: '10px', fill: 'hsl(221.2, 83.2%, 53.3%)' } }}
+                    />
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="#64748b"
+                      style={{ fontSize: '10px', fontWeight: 600 }}
+                      tickLine={false}
+                      axisLine={false}
+                      label={{ value: 'Local £ (k)', angle: 90, position: 'insideRight', style: { fontSize: '10px', fill: '#64748b' } }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        padding: '8px 12px',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      }}
+                      labelStyle={{ color: '#1e293b', fontWeight: 700, marginBottom: '4px' }}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="co2Saved"
+                      name="CO₂ Saved (tonnes)"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={3}
+                      dot={{ fill: 'hsl(221.2, 83.2%, 53.3%)', strokeWidth: 2, r: 5, stroke: '#fff' }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                      animationDuration={2000}
+                      animationBegin={300}
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="localSpend"
+                      name="Local Spend (£k)"
+                      stroke="#64748b"
+                      strokeWidth={3}
+                      dot={{ fill: '#64748b', strokeWidth: 2, r: 5, stroke: '#fff' }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                      animationDuration={2000}
+                      animationBegin={500}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-primary"></div>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">CO₂ Reduction</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-slate-500"></div>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Local Economy</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const { isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
@@ -25,21 +334,20 @@ export default function Home() {
         const res = await fetch(`${API_BASE_URL}/products?isApproved=true`);
         const data = await res.json();
         if (res.ok && data.success && Array.isArray(data.data)) {
-          // Get first 4 products as featured
-          const products = data.data.slice(0, 4).map((p: any) => ({
+          const products = data.data.slice(0, 6).map((p: any) => ({
             id: p.id,
             name: p.name,
             price: p.price,
             business: p.business_name || "Business",
             image: p.images?.[0] || "/opengraph.jpg",
             category: p.category,
-            rating: p.averageRating || 0,  // Changed from 4.5
-            reviews: p.reviewCount || 0,    // Changed from 0
+            rating: p.averageRating || 0,
+            reviews: p.reviewCount || 0,
             pickupTime: "30 mins",
             businessPostcode: p.postcode,
             businessCity: p.city,
-            retailerPostcode: p.postcode, // Legacy support
-            retailerCity: p.city, // Legacy support
+            retailerPostcode: p.postcode,
+            retailerCity: p.city,
           }));
           setFeaturedProducts(products);
         }
@@ -53,369 +361,153 @@ export default function Home() {
     fetchFeaturedProducts();
   }, [API_BASE_URL]);
 
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [togglingFavorite, setTogglingFavorite] = useState(false);
-
-  useEffect(() => {
-    if (isAuthenticated && featuredProducts.length > 0) {
-      checkFavoriteStatus();
-    }
-  }, [isAuthenticated, featuredProducts]);
-
-  const checkFavoriteStatus = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/wishlist/check`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ productIds: featuredProducts.map(p => p.id) }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setIsFavorite(data.data.includes(featuredProducts[0].id)); // Assuming first product is representative
-      }
-    } catch (error) {
-      // Silently fail - wishlist is optional
-    }
-  };
-
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isAuthenticated) {
-      setLocation("/login/customer");
-      return;
-    }
-
-    setTogglingFavorite(true);
-    try {
-      if (isFavorite) {
-        // Remove from wishlist
-        const res = await fetch(`${API_BASE_URL}/wishlist/${featuredProducts[0].id}`, {
-          method: "DELETE",
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setIsFavorite(false);
-          toast({
-            title: "Removed from wishlist",
-            description: `${featuredProducts[0].name} was removed from your wishlist.`,
-          });
-        }
-      } else {
-        // Add to wishlist
-        const res = await fetch(`${API_BASE_URL}/wishlist/${featuredProducts[0].id}`, {
-          method: "POST",
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setIsFavorite(true);
-          toast({
-            title: "Added to wishlist",
-            description: `${featuredProducts[0].name} was added to your wishlist.`,
-          });
-        }
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.message || "Failed to update wishlist",
-        variant: "destructive",
-      });
-    } finally {
-      setTogglingFavorite(false);
+    if (searchQuery.trim()) {
+      setLocation(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
+
+  const popularSearches = ["Fresh Bread", "Craft Beer", "Ceramics", "Vinyl Records"];
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/10 selection:text-primary">
+    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
       <Navbar />
       
       <main>
-        <Hero />
+        {/* Hero Section */}
+        <header className="relative pt-40 pb-24 px-6 overflow-hidden">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-6xl md:text-8xl lg:text-[9rem] font-black max-w-5xl mb-16 tracking-tighter leading-[1.05]">
+              Buy now and pick up in store in minutes.
+            </h1>
 
-        {/* Features / Value Prop */}
-        <section className="border-y border-border/40 bg-secondary/20 py-12">
-          <div className="container mx-auto px-4">
-            <div className="grid gap-8 md:grid-cols-3">
-              <div className="flex flex-col items-center text-center p-4">
-                <div className="mb-4 rounded-full bg-primary/10 p-3 text-primary">
-                  <Store className="h-8 w-8" />
-                </div>
-                <h3 className="mb-2 font-heading text-xl font-bold">Support Local</h3>
-                <p className="text-muted-foreground">Directly support independent businesses in Manchester with every purchase.</p>
-              </div>
-              <div className="flex flex-col items-center text-center p-4">
-                <div className="mb-4 rounded-full bg-primary/10 p-3 text-primary">
-                  <Leaf className="h-8 w-8" />
-                </div>
-                <h3 className="mb-2 font-heading text-xl font-bold">Sustainable Choice</h3>
-                <p className="text-muted-foreground">Reduce your carbon footprint by shopping local and collecting in-store.</p>
-              </div>
-              <div className="flex flex-col items-center text-center p-4">
-                <div className="mb-4 rounded-full bg-primary/10 p-3 text-primary">
-                  <ShieldCheck className="h-8 w-8" />
-                </div>
-                <h3 className="mb-2 font-heading text-xl font-bold">Verified Sellers</h3>
-                <p className="text-muted-foreground">Every business is vetted to ensure quality and authentic local products.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Categories */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="mb-8 flex items-end justify-between">
-              <div>
-                <h2 className="font-heading text-3xl font-bold tracking-tight text-primary">Explore Categories</h2>
-                <p className="mt-2 text-muted-foreground">Find exactly what you're looking for.</p>
-              </div>
-              <Button variant="outline" asChild className="hidden sm:flex">
-                <Link href="/categories">View All Categories</Link>
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-              {CATEGORIES.map((category) => (
-                <Link key={category.id} href={`/search?category=${category.slug}`}>
-                  <div className="group cursor-pointer rounded-xl border border-border bg-card p-6 text-center transition-all hover:border-primary hover:shadow-md">
-                    <div className="mb-3 text-4xl">
-                      {/* Category icons matching the new comprehensive list */}
-                      {category.slug === 'food-drink' && '🍽️'}
-                      {category.slug === 'health-beauty' && '💄'}
-                      {category.slug === 'fashion-accessories' && '👗'}
-                      {category.slug === 'home-living' && '🏠'}
-                      {category.slug === 'electronics-tech' && '📱'}
-                      {category.slug === 'books-music-hobbies' && '📚'}
-                      {category.slug === 'kids-family' && '👶'}
-                      {category.slug === 'sports-outdoors' && '⚽'}
-                      {category.slug === 'gifts-flowers-stationery' && '🎁'}
-                      {category.slug === 'pets' && '🐾'}
-                      {category.slug === 'services' && '🔧'}
-                      {category.slug === 'other' && '📦'}
-                    </div>
-                    <h3 className="font-medium group-hover:text-primary text-sm">{category.name}</h3>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Featured Products */}
-        <section className="py-16 bg-secondary/30">
-          <div className="container mx-auto px-4">
-            <div className="mb-8 flex items-end justify-between">
-              <div>
-                <h2 className="font-heading text-3xl font-bold tracking-tight text-primary">Fresh in Manchester</h2>
-                <p className="mt-2 text-muted-foreground">New arrivals from your favorite local spots.</p>
-              </div>
-              <Link href="/search" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-                See all products <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : featuredProducts.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {featuredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
+              {/* Left side - Search */}
+              <div className="space-y-8">
+                <form onSubmit={handleSearch} className="relative group">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-14 pl-0 pr-14 bg-transparent border-b-2 border-slate-200 dark:border-slate-700 focus:border-primary focus:outline-none text-lg placeholder:text-slate-400 transition-colors"
+                    placeholder="Search the city..."
                   />
+                  <button 
+                    type="submit"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-slate-900 dark:text-white hover:text-primary transition-colors"
+                  >
+                    <ArrowRight className="h-6 w-6" />
+                  </button>
+                </form>
+
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="text-xs font-medium tracking-widest text-slate-400 uppercase">
+                    Popular:
+                  </span>
+                  {["iPhone", "Gifts", "Groceries"].map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setSearchQuery(term);
+                        setLocation(`/search?q=${encodeURIComponent(term)}`);
+                      }}
+                      className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors uppercase tracking-wide"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right side - Description */}
+              <div className="flex flex-col items-end text-right space-y-6">
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">
+                  A curated marketplace for independent makers and local shops.
+                </p>
+                <span className="text-xs font-medium tracking-widest text-slate-400">— EST. 2026</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Features Section */}
+        <section className="py-20 px-6 border-y border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
+            <div className="space-y-4">
+              <span className="text-xs font-medium tracking-widest text-primary uppercase">01 — Hyperlocal</span>
+              <h3 className="text-xl font-semibold tracking-tight">Support Local</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                Manchester's finest independent makers delivered directly to your doorstep.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <span className="text-xs font-medium tracking-widest text-primary uppercase">02 — Green</span>
+              <h3 className="text-xl font-semibold tracking-tight">Sustainable Choice</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                Reduce footprint by shopping hyper-locally and supporting your neighbours.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <span className="text-xs font-medium tracking-widest text-primary uppercase">03 — Quality</span>
+              <h3 className="text-xl font-semibold tracking-tight">Verified Sellers</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                Every shop is manually vetted for premium quality and authentic origins.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Progress Section */}
+        <ProgressSection />
+
+        {/* Neighbourhood Picks Section - Only shown when products exist */}
+        {!loading && featuredProducts.length > 0 && (
+          <section className="py-32 px-6 overflow-hidden">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+                <div>
+                  <p className="text-sm font-medium tracking-widest text-primary uppercase mb-3">Neighbourhood Picks</p>
+                  <h2 className="text-5xl font-extrabold tracking-tighter mb-4">Shop Local, Shop Real.</h2>
+                  <p className="text-xl text-slate-500 dark:text-slate-400">
+                    Discover unique products from independent businesses in your community.
+                  </p>
+                </div>
+                <Link href="/search" className="group flex items-center gap-2 font-semibold text-primary">
+                  View all collections
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredProducts.map((product) => (
+                  <Link key={product.id} href={`/product/${product.id}`}>
+                    <div className="relative group overflow-hidden rounded-3xl bg-slate-100 dark:bg-white/5 aspect-[4/5] cursor-pointer">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8 text-white">
+                        <span className="text-sm font-medium opacity-80 mb-2">{product.business}</span>
+                        <h4 className="text-2xl font-bold">{product.name}</h4>
+                        <p className="text-lg font-semibold mt-2">£{product.price}</p>
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No products available at the moment.</p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Call to Action for Businesses */}
-        <section className="py-20 bg-gradient-to-b from-background to-secondary/20">
-          <div className="container mx-auto px-4">
-            <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl border border-primary/20">
-              <div className="grid gap-8 px-8 py-12 md:grid-cols-5 md:px-16 md:py-20 items-center">
-                <div className="space-y-4 md:col-span-3">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 text-primary-foreground/90 text-sm font-medium">
-                    <Store className="h-4 w-4" />
-                    For Businesses
-                  </div>
-                  <h2 className="font-heading text-3xl font-bold md:text-4xl lg:text-5xl leading-tight">
-                    Grow Your Local Business with Localito
-                  </h2>
-                  <p className="text-lg text-primary-foreground/90 leading-relaxed">
-                    Join Manchester's premier marketplace for independent businesses. Reach thousands of local customers, increase your online presence, and boost sales—all with transparent pricing and dedicated support.
-                  </p>
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
-                        <ShieldCheck className="h-4 w-4 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">0% Listing Fees</p>
-                        <p className="text-xs text-primary-foreground/70">No upfront costs</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
-                        <Store className="h-4 w-4 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">Quick Setup</p>
-                        <p className="text-xs text-primary-foreground/70">Get started in minutes</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
-                        <Leaf className="h-4 w-4 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">Local Focus</p>
-                        <p className="text-xs text-primary-foreground/70">Connect with your community</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 rounded-full bg-primary-foreground/20 p-1.5">
-                        <ArrowRight className="h-4 w-4 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">Easy Payments</p>
-                        <p className="text-xs text-primary-foreground/70">Secure & reliable</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <Button size="lg" variant="secondary" className="text-primary font-bold shadow-lg hover:shadow-xl transition-shadow" asChild>
-                      <Link href="/signup/business">
-                        Get Started Free
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-
-                    </Button>
-                    <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground/50 transition-colors" asChild>
-                      <Link href="/terms">
-                        View Terms
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-                <div className="relative hidden md:block h-full min-h-[250px] md:col-span-2">
-                   {/* Enhanced visual design */}
-                   <div className="absolute inset-0 bg-white/10 rounded-2xl transform rotate-3 blur-sm"></div>
-                   <div className="absolute inset-0 bg-white/5 rounded-2xl transform -rotate-2"></div>
-                   <div className="absolute inset-0 flex items-center justify-center p-4">
-                     <img 
-                       src="/store.png" 
-                       alt="Local independent retail shop illustration" 
-                       className="w-full h-full max-h-[250px] object-contain rounded-2xl"
-                     />
-                   </div>
-                   {/* Decorative elements */}
-                   <div className="absolute top-2 right-2 w-12 h-12 rounded-full bg-white/5 border border-white/10"></div>
-                   <div className="absolute bottom-4 left-4 w-8 h-8 rounded-full bg-white/5 border border-white/10"></div>
-                </div>
-              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* CTA Section */}
+        <CTASection />
+
+        <Footer />
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#0A1A3A] text-primary-foreground">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Localito Brand Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <img 
-                  src={ASSETS.darklogo} 
-                  alt="Localito Logo" 
-                  className="h-20 w-auto object-contain"
-                />
-              </div>
-            </div>
-
-            {/* Browse Column */}
-            <div className="space-y-4">
-              <h4 className="text-base font-bold">Browse</h4>
-              <ul className="space-y-2 text-sm text-primary-foreground/70">
-                <li>
-                  <Link href="/search" className="hover:text-primary-foreground transition-colors">
-                    Products
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/search?category=all" className="hover:text-primary-foreground transition-colors">
-                    Categories
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/business/dashboard" className="hover:text-primary-foreground transition-colors">
-                    Stores
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Help Column */}
-            <div className="space-y-4">
-              <h4 className="text-base font-bold">Help</h4>
-              <ul className="space-y-2 text-sm text-primary-foreground/70">
-                <li>
-                  <Link href="/faq" className="hover:text-primary-foreground transition-colors">
-                    FAQ
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-primary-foreground transition-colors">
-                    Contact
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/support" className="hover:text-primary-foreground transition-colors">
-                    Support
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal Column */}
-            <div className="space-y-4">
-              <h4 className="text-base font-bold">Legal</h4>
-              <ul className="space-y-2 text-sm text-primary-foreground/70">
-                <li>
-                  <Link href="/privacy" className="hover:text-primary-foreground transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="hover:text-primary-foreground transition-colors">
-                    Terms & Conditions
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        {/* Bottom Separator */}
-        <div className="border-t border-primary-foreground/20">
-          <div className="container mx-auto px-4 py-4">
-            <p className="text-sm text-primary-foreground/70 text-center">
-              &copy; 2025 Localito Manchester. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

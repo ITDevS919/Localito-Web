@@ -1,11 +1,12 @@
 import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/10 selection:text-primary">
       <Navbar />
 
-      <main className="py-12 md:py-16">
+      <main className="pt-28 md:pt-32 pb-12 md:pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
           <header className="mb-10">
             <h1 className="text-3xl md:text-4xl font-heading font-bold tracking-tight text-primary mb-3">
@@ -81,7 +82,7 @@ export default function PrivacyPage() {
                 <li>
                   <span className="font-semibold">Automatically:</span> Through cookies and similar
                   technologies when you use the Platform. For more detail, see
-                  our Cookie Policy (link available on the site).
+                  our <a href="/cookies">Cookie Policy</a>.
                 </li>
                 <li>
                   <span className="font-semibold">From third parties:</span> For example, from Businesses
@@ -283,6 +284,7 @@ export default function PrivacyPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
