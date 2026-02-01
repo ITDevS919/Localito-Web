@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Filter, MapPin, Loader2, Search, Navigation } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -23,6 +23,7 @@ interface Category {
   id: string;
   name: string;
   description: string | null;
+  parent_id?: string | null;
 }
 
 export default function SearchPage() {
@@ -30,18 +31,14 @@ export default function SearchPage() {
   
   // Extract URL params using useMemo to prevent recreation
   // Get query string from window.location to ensure we get the full URL
-  const { query, locationQuery } = useMemo(() => {
-    // Use window.location.search to get the query string directly
+  const { query, locationQuery, tab } = useMemo(() => {
     const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get("tab") || "";
     const extracted = {
       query: searchParams.get("q") || "",
       locationQuery: searchParams.get("loc") || "",
+      tab: tabParam === "products" || tabParam === "services" ? tabParam : "all",
     };
-    console.log("[SearchPage] URL params extracted:", { 
-      location,
-      windowLocationSearch: window.location.search,
-      extracted 
-    });
     return extracted;
   }, [location]);
   
@@ -49,6 +46,7 @@ export default function SearchPage() {
   const [searchInput, setSearchInput] = useState(query);
   const [filterLocation, setFilterLocation] = useState(locationQuery);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [businessTypeCategoryId, setBusinessTypeCategoryId] = useState<string | null>(null); // business's declared type (primary_category_id)
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [sortBy, setSortBy] = useState("featured");
   const [products, setProducts] = useState<Product[]>([]);
@@ -57,6 +55,12 @@ export default function SearchPage() {
   const [loadingServices, setLoadingServices] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "products" | "services">("all");
+
+  // Sync activeTab from URL tab param when location/URL changes
+  useEffect(() => {
+    if (tab === "products" || tab === "services") setActiveTab(tab);
+    else setActiveTab("all");
+  }, [tab]);
 
   // Use my location (geolocation) for nearest/furthest
   const [useMyLocation, setUseMyLocation] = useState(false);
@@ -167,6 +171,9 @@ export default function SearchPage() {
           params.append("location", locationQuery.trim());
           params.append("radiusKm", "0");
         }
+        if (businessTypeCategoryId) {
+          params.append("businessType", businessTypeCategoryId);
+        }
 
         const apiUrl = `${API_BASE_URL}/products${params.toString() ? `?${params.toString()}` : ""}`;
         
@@ -225,6 +232,9 @@ export default function SearchPage() {
         if (query && query.trim()) {
           params.append("search", query.trim());
         }
+        if (businessTypeCategoryId) {
+          params.append("businessType", businessTypeCategoryId);
+        }
         
         const apiUrl = `${API_BASE_URL}/services${params.toString() ? `?${params.toString()}` : ""}`;
         const res = await fetch(apiUrl, {
@@ -268,7 +278,7 @@ export default function SearchPage() {
 
     fetchProducts();
     fetchServices();
-  }, [query, locationQuery, location, API_BASE_URL, userCoords]);
+  }, [query, locationQuery, location, API_BASE_URL, userCoords, businessTypeCategoryId]);
 
   // Handle category toggle
   const handleCategoryToggle = (categoryId: string) => {
@@ -313,19 +323,30 @@ export default function SearchPage() {
     }
   };
 
+  // Group categories for sidebar: top-level (no parent) and Services with its children
+  const { topLevelCategories, servicesParent, serviceSubcategories } = useMemo(() => {
+    const top = categories.filter(c => !c.parent_id);
+    const servicesCat = top.find(c => c.name === "Services");
+    const serviceIds = servicesCat ? categories.filter(c => c.parent_id === servicesCat.id) : [];
+    return {
+      topLevelCategories: top,
+      servicesParent: servicesCat ?? null,
+      serviceSubcategories: serviceIds,
+    };
+  }, [categories]);
+
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = [...products];
     // Apply category filter
     if (selectedCategories.length > 0) {
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         selectedCategories.some(catId => {
           const cat = categories.find(c => c.id === catId);
           return cat && p.category === cat.name;
         })
       );
     }
-
 
     // Apply price filter
     filtered = filtered.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
@@ -349,18 +370,28 @@ export default function SearchPage() {
         });
         break;
       case "distance-nearest":
-        // API already returns nearest first when using user location; keep order
         break;
       case "distance-furthest":
-        // Reverse so furthest first (when using "Use my location")
         if (userCoords) filtered.reverse();
         break;
-      default: // featured
+      default:
         break;
     }
 
     return filtered;
-  }, [products, selectedCategories, priceRange, sortBy, userCoords]);
+  }, [products, selectedCategories, categories, priceRange, sortBy, userCoords]);
+
+  // Filter services by selected categories (by category name)
+  const filteredAndSortedServices = useMemo(() => {
+    let filtered = [...services];
+    if (selectedCategories.length > 0) {
+      const selectedNames = selectedCategories
+        .map(catId => categories.find(c => c.id === catId)?.name)
+        .filter(Boolean) as string[];
+      filtered = filtered.filter(s => selectedNames.includes(s.category));
+    }
+    return filtered;
+  }, [services, selectedCategories, categories]);
 
   console.log("Filtered and sorted products:", filteredAndSortedProducts);
 
@@ -400,6 +431,20 @@ export default function SearchPage() {
               <Search className="h-5 w-5 sm:mr-2" />
               <span className="hidden sm:inline">Search</span>
             </Button>
+          </div>
+          {/* Browse: Businesses, Services, Products (match home) */}
+          <div className="flex flex-wrap items-center gap-6 pt-3">
+            {[
+              { label: "Businesses", href: "/search" },
+              { label: "Services", href: "/search?tab=services" },
+              { label: "Products", href: "/search?tab=products" },
+            ].map(({ label, href }) => (
+              <Link key={label} href={href}>
+                <span className="font-semibold text-foreground tracking-tight hover:text-primary transition-colors cursor-pointer">
+                  {label}
+                </span>
+              </Link>
+            ))}
           </div>
           {/* Use my location toggle */}
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50 mt-2">
@@ -529,7 +574,32 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {/* Categories */}
+              {/* Business type – filter by business's declared type (primary_category_id) */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  BUSINESS TYPE
+                </h3>
+                <Select
+                  value={businessTypeCategoryId || "all"}
+                  onValueChange={(value) => {
+                    setBusinessTypeCategoryId(value === "all" ? null : value);
+                  }}
+                >
+                  <SelectTrigger className="w-full rounded-lg border-border bg-background">
+                    <SelectValue placeholder="All types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All types</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Categories – top-level + Services subsection with subcategories */}
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   CATEGORIES
@@ -543,20 +613,75 @@ export default function SearchPage() {
                     {categories.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No categories available</p>
                     ) : (
-                      categories.map((cat) => (
-                        <label
-                          key={cat.id}
-                          htmlFor={`cat-${cat.id}`}
-                          className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 hover:bg-muted/50"
-                        >
-                          <Checkbox 
-                            id={`cat-${cat.id}`}
-                            checked={selectedCategories.includes(cat.id)}
-                            onCheckedChange={() => handleCategoryToggle(cat.id)}
-                          />
-                          <span className="text-sm font-medium select-none">{cat.name}</span>
-                        </label>
-                      ))
+                      <>
+                        {/* Top-level categories except Services and Other (shown below) */}
+                        {topLevelCategories
+                          .filter(c => c.name !== "Services" && c.name !== "Other")
+                          .map(cat => (
+                            <label
+                              key={cat.id}
+                              htmlFor={`cat-${cat.id}`}
+                              className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 hover:bg-muted/50"
+                            >
+                              <Checkbox
+                                id={`cat-${cat.id}`}
+                                checked={selectedCategories.includes(cat.id)}
+                                onCheckedChange={() => handleCategoryToggle(cat.id)}
+                              />
+                              <span className="text-sm font-medium select-none">{cat.name}</span>
+                            </label>
+                          ))}
+                        {/* Services section with subcategories */}
+                        {servicesParent && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="text-xs font-semibold text-muted-foreground pl-0.5">
+                              Services
+                            </div>
+                            {serviceSubcategories.map(cat => (
+                              <label
+                                key={cat.id}
+                                htmlFor={`cat-${cat.id}`}
+                                className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 pl-4 hover:bg-muted/50"
+                              >
+                                <Checkbox
+                                  id={`cat-${cat.id}`}
+                                  checked={selectedCategories.includes(cat.id)}
+                                  onCheckedChange={() => handleCategoryToggle(cat.id)}
+                                />
+                                <span className="text-sm font-medium select-none">{cat.name}</span>
+                              </label>
+                            ))}
+                            <label
+                              htmlFor={`cat-${servicesParent.id}`}
+                              className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 pl-4 hover:bg-muted/50"
+                            >
+                              <Checkbox
+                                id={`cat-${servicesParent.id}`}
+                                checked={selectedCategories.includes(servicesParent.id)}
+                                onCheckedChange={() => handleCategoryToggle(servicesParent.id)}
+                              />
+                              <span className="text-sm font-medium select-none">General / Other</span>
+                            </label>
+                          </div>
+                        )}
+                        {/* Other (top-level) */}
+                        {topLevelCategories
+                          .filter(c => c.name === "Other")
+                          .map(cat => (
+                            <label
+                              key={cat.id}
+                              htmlFor={`cat-${cat.id}`}
+                              className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 hover:bg-muted/50"
+                            >
+                              <Checkbox
+                                id={`cat-${cat.id}`}
+                                checked={selectedCategories.includes(cat.id)}
+                                onCheckedChange={() => handleCategoryToggle(cat.id)}
+                              />
+                              <span className="text-sm font-medium select-none">{cat.name}</span>
+                            </label>
+                          ))}
+                      </>
                     )}
                   </div>
                 )}
@@ -591,7 +716,18 @@ export default function SearchPage() {
 
           {/* Results Grid */}
           <div className="lg:col-span-3">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => {
+                setActiveTab(v as "all" | "products" | "services");
+                const params = new URLSearchParams(window.location.search);
+                if (v === "all") params.delete("tab");
+                else params.set("tab", v);
+                const newSearch = params.toString() ? `?${params.toString()}` : "";
+                setLocation(`/search${newSearch}`);
+              }}
+              className="w-full"
+            >
               <TabsList className="mb-6">
                 <TabsTrigger value="all">
                   All ({products.length + services.length})
@@ -617,7 +753,7 @@ export default function SearchPage() {
                 )}
                 {!loading && !loadingServices && !error && (
                   <>
-                    {products.length === 0 && services.length === 0 ? (
+                    {filteredAndSortedProducts.length === 0 && filteredAndSortedServices.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <p className="text-lg font-semibold text-muted-foreground">No results found</p>
                         <p className="text-sm text-muted-foreground mt-2">
@@ -629,7 +765,7 @@ export default function SearchPage() {
                         {filteredAndSortedProducts.map((product, index) => (
                           <ProductCard key={`product-${product.id}-${index}`} product={product} />
                         ))}
-                        {services.map((service, index) => (
+                        {filteredAndSortedServices.map((service, index) => (
                           <ServiceCard key={`service-${service.id}-${index}`} service={service} />
                         ))}
                       </div>
@@ -688,16 +824,16 @@ export default function SearchPage() {
                 )}
                 {!loadingServices && (
                   <>
-                    {services.length === 0 ? (
+                    {filteredAndSortedServices.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <p className="text-lg font-semibold text-muted-foreground">No services found</p>
                         <p className="text-sm text-muted-foreground mt-2">
-                          Try adjusting your search
+                          Try adjusting your search or filters
                         </p>
                       </div>
                     ) : (
                       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {services.map((service, index) => (
+                        {filteredAndSortedServices.map((service, index) => (
                           <ServiceCard key={`service-${service.id}-${index}`} service={service} />
                         ))}
                       </div>

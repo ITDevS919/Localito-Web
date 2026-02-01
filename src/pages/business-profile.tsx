@@ -17,6 +17,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 interface BusinessProfile {
   id: string;
   business_name: string;
+  primary_category_name?: string;
   business_address?: string;
   postcode?: string;
   city?: string;
@@ -244,6 +245,11 @@ export default function BusinessProfilePage() {
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-2">{business.business_name}</h1>
+                {business.primary_category_name && (
+                  <Badge variant="secondary" className="mb-3 font-normal">
+                    {business.primary_category_name}
+                  </Badge>
+                )}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {business.city && (
                     <div className="flex items-center gap-1">

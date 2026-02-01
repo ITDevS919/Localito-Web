@@ -80,13 +80,13 @@ export function CreateServiceModal({
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-  // Fetch categories
+  // Fetch service subcategories only (Cleaners, Hairdressers, Massage Therapists, etc.)
   useEffect(() => {
     if (open) {
       const fetchCategories = async () => {
         setLoadingCategories(true);
         try {
-          const res = await fetch(`${API_BASE_URL}/categories`);
+          const res = await fetch(`${API_BASE_URL}/categories?for=service`);
           const data = await res.json();
           if (res.ok && data.success) {
             setCategories(data.data || []);

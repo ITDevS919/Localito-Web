@@ -1,12 +1,13 @@
 import { Link } from "wouter";
+import { ASSETS } from "@/lib/product";
 
 export function Footer() {
   return (
     <footer className="bg-slate-900 text-white py-24 px-6 mt-20">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Localito</h2>
+            <img src={ASSETS.darklogo} alt="Localito" className="h-10 w-auto object-contain" />
             <p className="text-slate-400 text-sm">
               Manchester's premier destination for curated local products and sustainable commerce.
             </p>
@@ -16,6 +17,14 @@ export function Footer() {
             <h3 className="font-heading text-sm font-bold mb-4 uppercase tracking-wider text-slate-500">Browse</h3>
             <ul className="space-y-2 text-sm">
               <li><Link href="/search" className="text-slate-400 hover:text-white transition-colors">Marketplace</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-heading text-sm font-bold mb-4 uppercase tracking-wider text-slate-500">For businesses</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/for-businesses" className="text-slate-400 hover:text-white transition-colors">For Businesses</Link></li>
+              <li><Link href="/commission" className="text-slate-400 hover:text-white transition-colors">Commission &amp; Fees</Link></li>
             </ul>
           </div>
 

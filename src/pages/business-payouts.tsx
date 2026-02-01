@@ -75,10 +75,6 @@ export default function BusinessPayoutsPage() {
   const [requestForm, setRequestForm] = useState({ amount: "", notes: "", currency: "GBP" });
   const [stripeStatus, setStripeStatus] = useState<StripeAccountStatus | null>(null);
   const [loadingStripe, setLoadingStripe] = useState(false);
-  const [showManualLink, setShowManualLink] = useState(false);
-  const [manualAccountId, setManualAccountId] = useState("");
-  const [manualSecretKey, setManualSecretKey] = useState("");
-  const [linkingAccount, setLinkingAccount] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -328,53 +324,6 @@ export default function BusinessPayoutsPage() {
       });
     } finally {
       setLoadingStripe(false);
-    }
-  };
-
-  const handleLinkAccountManually = async () => {
-    if (!manualAccountId.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a Stripe account ID",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLinkingAccount(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/business/stripe/link-account`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ 
-          accountId: manualAccountId.trim(),
-          secretKey: manualSecretKey.trim() || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast({
-          title: "Success",
-          description: "Stripe account linked successfully",
-        });
-        setShowManualLink(false);
-        setManualAccountId("");
-        setManualSecretKey("");
-        // Refresh the status to show the updated connection
-        await fetchStripeStatus();
-      } else {
-        throw new Error(data.message || "Failed to link Stripe account");
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to link Stripe account",
-        variant: "destructive",
-      });
-    } finally {
-      setLinkingAccount(false);
     }
   };
 
@@ -805,51 +754,6 @@ export default function BusinessPayoutsPage() {
                         </>
                       )}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowManualLink(!showManualLink)}
-                      className="w-full"
-                    >
-                      {showManualLink ? "Cancel Manual Link" : "Link Test Account Manually"}
-                    </Button>
-                    {showManualLink && (
-                      <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
-                        <Label htmlFor="manualAccountId">Stripe Account ID (for testing/demo) *</Label>
-                        <Input
-                          id="manualAccountId"
-                          placeholder="acct_..."
-                          value={manualAccountId}
-                          onChange={(e) => setManualAccountId(e.target.value)}
-                          disabled={linkingAccount}
-                        />
-                        <Label htmlFor="manualSecretKey">Stripe Secret Key (optional)</Label>
-                        <Input
-                          id="manualSecretKey"
-                          type="password"
-                          placeholder="sk_test_... or sk_live_..."
-                          value={manualSecretKey}
-                          onChange={(e) => setManualSecretKey(e.target.value)}
-                          disabled={linkingAccount}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Enter your Stripe account ID (starts with "acct_"). Optionally provide your secret key (starts with "sk_") to use your own Stripe account. If secret key is not provided, the platform key will be used.
-                        </p>
-                        <Button
-                          onClick={handleLinkAccountManually}
-                          disabled={linkingAccount || !manualAccountId.trim()}
-                          size="sm"
-                        >
-                          {linkingAccount ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Linking...
-                            </>
-                          ) : (
-                            "Link Account"
-                          )}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -872,51 +776,6 @@ export default function BusinessPayoutsPage() {
                       </>
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowManualLink(!showManualLink)}
-                    className="w-full"
-                  >
-                    {showManualLink ? "Cancel Manual Link" : "Link Test Account Manually"}
-                  </Button>
-                  {showManualLink && (
-                    <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
-                      <Label htmlFor="manualAccountId">Stripe Account ID (for testing/demo) *</Label>
-                      <Input
-                        id="manualAccountId"
-                        placeholder="acct_..."
-                        value={manualAccountId}
-                        onChange={(e) => setManualAccountId(e.target.value)}
-                        disabled={linkingAccount}
-                      />
-                      <Label htmlFor="manualSecretKey">Stripe Secret Key (optional)</Label>
-                      <Input
-                        id="manualSecretKey"
-                        type="password"
-                        placeholder="sk_test_... or sk_live_..."
-                        value={manualSecretKey}
-                        onChange={(e) => setManualSecretKey(e.target.value)}
-                        disabled={linkingAccount}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Enter your Stripe account ID (starts with "acct_"). Optionally provide your secret key (starts with "sk_") to use your own Stripe account. If secret key is not provided, the platform key will be used.
-                      </p>
-                      <Button
-                        onClick={handleLinkAccountManually}
-                        disabled={linkingAccount || !manualAccountId.trim()}
-                        size="sm"
-                      >
-                        {linkingAccount ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Linking...
-                          </>
-                        ) : (
-                          "Link Account"
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </div>
             )}

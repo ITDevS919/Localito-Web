@@ -74,11 +74,11 @@ export function CreateProductModal({
   // Fetch categories and check Square connection status
   useEffect(() => {
     if (open) {
-      // Fetch categories
+      // Fetch product categories only (top-level, excluding Services)
       const fetchCategories = async () => {
         setLoadingCategories(true);
         try {
-          const res = await fetch(`${API_BASE_URL}/categories`);
+          const res = await fetch(`${API_BASE_URL}/categories?for=product`);
           const data = await res.json();
           if (res.ok && data.success) {
             setCategories(data.data || []);

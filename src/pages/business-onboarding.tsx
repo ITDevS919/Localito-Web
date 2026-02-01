@@ -21,8 +21,21 @@ import {
 } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 interface OnboardingStatus {
   profileComplete: boolean;
@@ -50,7 +63,10 @@ export default function BusinessOnboardingPage() {
     postcode: "",
     city: "",
     phone: "",
+    businessType: "" as "product" | "service" | "",
+    primaryCategoryId: "" as string,
   });
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Step 2: Square
   const [squareData, setSquareData] = useState({
@@ -94,12 +110,31 @@ export default function BusinessOnboardingPage() {
           postcode: business.postcode || "",
           city: business.city || "",
           phone: business.phone || "",
+          businessType: business.business_type || "",
+          primaryCategoryId: business.primary_category_id || "",
         });
+        
+        // If business_type is already set, load categories for that type
+        if (business.business_type) {
+          await loadCategories(business.business_type);
+        }
       }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCategories = async (type: "product" | "service") => {
+    try {
+      const catRes = await fetch(`${API_BASE_URL}/categories?for=${type}`);
+      const catData = await catRes.json();
+      if (catRes.ok && catData.success && Array.isArray(catData.data)) {
+        setCategories(catData.data);
+      }
+    } catch (err: any) {
+      console.error("Failed to load categories:", err);
     }
   };
 
@@ -112,6 +147,10 @@ export default function BusinessOnboardingPage() {
       setError("Please provide either postcode or city");
       return false;
     }
+    if (!formData.businessType) {
+      setError("Please select your business type (Products/Retail or Services)");
+      return false;
+    }
 
     setSaving(true);
     setError(null);
@@ -120,7 +159,10 @@ export default function BusinessOnboardingPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          primaryCategoryId: formData.primaryCategoryId || undefined,
+        }),
       });
 
       const data = await res.json();
@@ -305,7 +347,7 @@ export default function BusinessOnboardingPage() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Required:</strong> Business name and either postcode or city. Address and phone help customers reach you.
+                    <strong>Required:</strong> Business type, business name, and either postcode or city. Address and phone help customers reach you.
                   </AlertDescription>
                 </Alert>
 
@@ -323,6 +365,100 @@ export default function BusinessOnboardingPage() {
                       />
                     </div>
                   </div>
+
+                  <div className="space-y-3">
+                    <Label>What type of business do you operate? *</Label>
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, businessType: "product", primaryCategoryId: "" });
+                          loadCategories("product");
+                        }}
+                        className={`flex-1 p-4 border-2 rounded-lg text-left transition-all ${
+                          formData.businessType === "product"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              formData.businessType === "product"
+                                ? "border-primary"
+                                : "border-muted-foreground"
+                            }`}
+                          >
+                            {formData.businessType === "product" && (
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <span className="font-medium">Products/Retail</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 ml-6">
+                          Physical goods, merchandise, food & drink, etc.
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, businessType: "service", primaryCategoryId: "" });
+                          loadCategories("service");
+                        }}
+                        className={`flex-1 p-4 border-2 rounded-lg text-left transition-all ${
+                          formData.businessType === "service"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              formData.businessType === "service"
+                                ? "border-primary"
+                                : "border-muted-foreground"
+                            }`}
+                          >
+                            {formData.businessType === "service" && (
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <span className="font-medium">Services</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 ml-6">
+                          Cleaning, hair, massage, repairs, consultations, etc.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {formData.businessType && (
+                    <div className="space-y-2">
+                      <Label>Business category (optional)</Label>
+                      <Select
+                        value={formData.primaryCategoryId || "none"}
+                        onValueChange={(v) => setFormData({ ...formData, primaryCategoryId: v === "none" ? "" : v })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {formData.businessType === "product" 
+                          ? "e.g. Food & Drink, Fashion, Books"
+                          : "e.g. Cleaners, Hairdressers, Massage Therapists"}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="businessAddress">Business Address</Label>

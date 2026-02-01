@@ -59,7 +59,7 @@ export default function About() {
               variants={itemVariants}
               className="text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
             >
-              Localito is Manchester's hyper-local, indie-only BOPIS marketplace. We're on a mission to help independent businesses thrive in a world dominated by big tech platforms.
+              Localito is Manchester's hyper-local, Independent-only click and collect marketplace. We're on a mission to help independent businesses thrive in a world dominated by big tech platforms.
             </motion.p>
           </div>
         </motion.section>
@@ -73,13 +73,38 @@ export default function About() {
                 <h2 className="text-4xl font-extrabold tracking-tighter">Built for Independent Businesses</h2>
                 <div className="space-y-4 text-slate-600 dark:text-slate-400">
                   <p>
-                    We believe local businesses are the heart of our communities. But big tech platforms charge 10-25% commission, making it harder for independent shops to compete.
+                    We believe local businesses are the beating heart of our communities.
+                    The places where memories are made, conversations happen, and neighbourhoods feel alive.
                   </p>
                   <p>
-                    That's why we created Localito—a marketplace that puts local businesses first with fair 6-9% commission rates, instant payouts, and no hidden fees.
+                    But big tech platforms have taken too much.
+                    They charge high commissions, pull customers away from our high streets, and leave independent shops fighting to survive with less footfall every year.
                   </p>
                   <p>
-                    We're not just a platform. We're a movement to reclaim local commerce from big tech dominance.
+                    That's why we created Localito.
+                  </p>
+                  <p>
+                    We built a marketplace that puts independent businesses first, with fair commission rates, instant payouts, and no hidden fees.
+                  </p>
+                  <p>
+                    More importantly, we built it to increase footfall, not reduce it.
+                    Every order placed on Localito drives real people back through your door.
+                    Every bit of instant cashback earned by customers loops straight back into your community, encouraging them to return again and again.
+                  </p>
+                  <p>
+                    We're not just an app.
+                    We're a movement.
+                    A refusal to let big tech quietly drain the life from our high streets.
+                    A commitment to help local shops, service providers and creatives thrive again, by bringing more customers walking through their doors.
+                  </p>
+                  <p>
+                    Because when independents win, communities win.
+                    And Manchester and every town like it deserves to feel alive once more.
+                  </p>
+                  <p>
+                    Join us.
+                    Let's bring the footfall back.
+                    Let's keep local beating strong.
                   </p>
                 </div>
               </div>
@@ -89,7 +114,7 @@ export default function About() {
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Store className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-lg">50+</h3>
+                  <h3 className="font-bold text-lg">300+</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Retailers Committed</p>
                 </div>
 
@@ -105,8 +130,8 @@ export default function About() {
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Award className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-lg">6-9%</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Fair Commission</p>
+                  <h3 className="font-bold text-lg">1%</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Minimum instant cashback on every order</p>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 shadow-lg space-y-3">

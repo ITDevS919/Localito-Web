@@ -51,6 +51,7 @@ import TermsPage from "@/pages/terms";
 import CookiesPage from "@/pages/cookies";
 import ForBusinessesPage from "@/pages/for-businesses";
 import AboutPage from "@/pages/about";
+import CommissionPage from "@/pages/commission";
 import FAQPage from "@/pages/faq";
 import ContactPage from "@/pages/contact";
 import DeleteAccountPage from "@/pages/delete-account";
@@ -129,6 +130,7 @@ function Router() {
       
       {/* About, FAQ & Contact */}
       <Route path="/about" component={AboutPage} />
+      <Route path="/commission" component={CommissionPage} />
       <Route path="/faq" component={FAQPage} />
       <Route path="/contact" component={ContactPage} />
       {/* Backwards-compatible routes pointing to unified terms */}

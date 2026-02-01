@@ -25,6 +25,7 @@ interface Category {
   name: string;
   description: string | null;
   is_active: boolean;
+  parent_id: string | null;
   created_at: string;
 }
 
@@ -35,7 +36,7 @@ export default function AdminCategoriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "", is_active: true });
+  const [formData, setFormData] = useState({ name: "", description: "", is_active: true, parent_id: "" as string | null });
 
   useEffect(() => {
     fetchCategories();
@@ -62,7 +63,7 @@ export default function AdminCategoriesPage() {
 
   const handleCreate = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "", is_active: true });
+    setFormData({ name: "", description: "", is_active: true, parent_id: null });
     setIsDialogOpen(true);
   };
 
@@ -72,9 +73,14 @@ export default function AdminCategoriesPage() {
       name: category.name,
       description: category.description || "",
       is_active: category.is_active,
+      parent_id: category.parent_id || null,
     });
     setIsDialogOpen(true);
   };
+
+  const topLevelCategories = categories.filter((c) => !c.parent_id);
+  const getParentName = (parentId: string | null) =>
+    parentId ? categories.find((c) => c.id === parentId)?.name ?? "—" : null;
 
   const handleSave = async () => {
     try {
@@ -83,11 +89,17 @@ export default function AdminCategoriesPage() {
         : `${API_BASE_URL}/admin/categories`;
       const method = editingCategory ? "PUT" : "POST";
 
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        is_active: formData.is_active,
+        parent_id: formData.parent_id || null,
+      };
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -154,8 +166,10 @@ export default function AdminCategoriesPage() {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
-            <Card key={category.id}>
+          {categories.map((category) => {
+            const parentName = getParentName(category.parent_id);
+            return (
+            <Card key={category.id} className={parentName ? "border-l-4 border-l-primary/30" : ""}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{category.name}</CardTitle>
@@ -163,6 +177,9 @@ export default function AdminCategoriesPage() {
                     {category.is_active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
+                {parentName && (
+                  <p className="text-xs text-muted-foreground mt-1">Under: {parentName}</p>
+                )}
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -186,7 +203,8 @@ export default function AdminCategoriesPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
 
         {categories.length === 0 && (
@@ -230,6 +248,23 @@ export default function AdminCategoriesPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Category description"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Parent category (for subcategories, e.g. under Services)</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.parent_id ?? ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, parent_id: e.target.value || null })
+                  }
+                >
+                  <option value="">None (top-level)</option>
+                  {topLevelCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center space-x-2">
                 <input

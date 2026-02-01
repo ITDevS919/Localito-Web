@@ -2,7 +2,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/product/ProductCard";
 import { CATEGORIES, ASSETS } from "@/lib/product";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Heart, Leaf, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useEffect, useState, useRef } from "react";
@@ -165,12 +165,12 @@ function ProgressSection() {
               <motion.div variants={itemVariants} className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-6xl font-black text-primary">
-                    <AnimatedNumber value={50} suffix="+" />
+                    <AnimatedNumber value={300} suffix="+" />
                   </span>
                   <span className="text-xl font-medium text-slate-600 dark:text-slate-400">Businesses</span>
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  Independent retailers committed to launch
+                  Independent businesses on the platform
                 </p>
               </motion.div>
 
@@ -192,18 +192,6 @@ function ProgressSection() {
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Projected local spend retained in community
-                </p>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="space-y-2">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-6xl font-black text-slate-900 dark:text-white">
-                    <AnimatedNumber value={6} />-<AnimatedNumber value={9} />
-                  </span>
-                  <span className="text-xl font-medium text-slate-600 dark:text-slate-400">%</span>
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  Fair commission rate (vs 10-25% big tech)
                 </p>
               </motion.div>
             </div>
@@ -376,89 +364,92 @@ export default function Home() {
       
       <main>
         {/* Hero Section */}
-        <header className="relative pt-40 pb-24 px-6 overflow-hidden">
+        <header className="relative pt-32 pb-16 px-6 overflow-hidden">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-6xl md:text-8xl lg:text-[9rem] font-black max-w-5xl mb-16 tracking-tighter leading-[1.05]">
-              Buy now and pick up in store in minutes.
-            </h1>
+            <div className="max-w-4xl">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tighter leading-[1.05] text-primary">
+                Search by business, product or service
+              </h1>
+              <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 max-w-xl">
+                A curated marketplace for independent makers and local shops.
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
-              {/* Left side - Search */}
-              <div className="space-y-8">
-                <form onSubmit={handleSearch} className="relative group">
+            {/* Search */}
+            <div className="max-w-2xl mb-6">
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="relative flex items-center rounded-2xl bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm shadow-sm border border-slate-200/60 dark:border-slate-700/50 px-5 py-1 focus-within:shadow-md focus-within:border-slate-300/70 dark:focus-within:border-slate-600 transition-all duration-200">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-14 pl-0 pr-14 bg-transparent border-b-2 border-slate-200 dark:border-slate-700 focus:border-primary focus:outline-none text-lg placeholder:text-slate-400 transition-colors"
+                    className="w-full h-14 pl-0 pr-12 bg-transparent border-0 focus:outline-none focus:ring-0 text-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
                     placeholder="Search the city..."
                   />
-                  <button 
+                  <button
                     type="submit"
-                    className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-slate-900 dark:text-white hover:text-primary transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <ArrowRight className="h-6 w-6" />
+                    <ArrowRight className="h-5 w-5" />
                   </button>
-                </form>
+                </div>
+              </form>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  <span className="text-xs font-medium tracking-widest text-slate-400 uppercase">
-                    Popular:
-                  </span>
-                  {["iPhone", "Gifts", "Groceries"].map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        setSearchQuery(term);
-                        setLocation(`/search?q=${encodeURIComponent(term)}`);
-                      }}
-                      className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors uppercase tracking-wide"
-                    >
-                      {term}
-                    </button>
-                  ))}
+              <div className="flex flex-wrap items-center gap-6 mt-4">
+                {[
+                  { label: "Businesses", href: "/search" },
+                  { label: "Services", href: "/search?tab=services" },
+                  { label: "Products", href: "/search?tab=products" },
+                ].map(({ label, href }) => (
+                  <Link key={label} href={href}>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200 tracking-tight hover:text-primary transition-colors cursor-pointer">
+                      {label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Features - inline */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 pt-12 border-t border-slate-200/60 dark:border-slate-700/40">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Heart className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Support Local</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                    Support Manchester's finest independent businesses and keep money in your community.
+                  </p>
                 </div>
               </div>
 
-              {/* Right side - Description */}
-              <div className="flex flex-col items-end text-right space-y-6">
-                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">
-                  A curated marketplace for independent makers and local shops.
-                </p>
-                <span className="text-xs font-medium tracking-widest text-slate-400">— EST. 2026</span>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Leaf className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Sustainable Choice</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                    Reduce footprint by shopping hyper-locally.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Verified Sellers</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                    Every business is verified as independent and local.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </header>
-
-        {/* Features Section */}
-        <section className="py-20 px-6 border-y border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
-            <div className="space-y-4">
-              <span className="text-xs font-medium tracking-widest text-primary uppercase">01 — Hyperlocal</span>
-              <h3 className="text-xl font-semibold tracking-tight">Support Local</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                Manchester's finest independent makers delivered directly to your doorstep.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <span className="text-xs font-medium tracking-widest text-primary uppercase">02 — Green</span>
-              <h3 className="text-xl font-semibold tracking-tight">Sustainable Choice</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                Reduce footprint by shopping hyper-locally and supporting your neighbours.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <span className="text-xs font-medium tracking-widest text-primary uppercase">03 — Quality</span>
-              <h3 className="text-xl font-semibold tracking-tight">Verified Sellers</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                Every shop is manually vetted for premium quality and authentic origins.
-              </p>
-            </div>
-          </div>
-        </section>
 
         {/* Progress Section */}
         <ProgressSection />
