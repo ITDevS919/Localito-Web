@@ -64,7 +64,7 @@ function CTASection() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
+      transition: { duration: 0.6, ease: "easeOut" as const },
     },
   };
 
@@ -131,7 +131,7 @@ function ProgressSection() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
+      transition: { duration: 0.6, ease: "easeOut" as const },
     },
   };
 
@@ -461,7 +461,7 @@ export default function Home() {
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
                 <div>
                   <p className="text-sm font-medium tracking-widest text-primary uppercase mb-3">Neighbourhood Picks</p>
-                  <h2 className="text-5xl font-extrabold tracking-tighter mb-4">Shop Local, Shop Real.</h2>
+                  <h2 className="text-5xl font-extrabold tracking-tighter mb-4">Shop Local, Book Local.</h2>
                   <p className="text-xl text-slate-500 dark:text-slate-400">
                     Discover unique products from independent businesses in your community.
                   </p>
