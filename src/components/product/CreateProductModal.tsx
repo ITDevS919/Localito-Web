@@ -201,8 +201,10 @@ export function CreateProductModal({
     }
   };
 
+  const EPOS_NONE_VALUE = "__none__";
+
   const handleSquareItemSelect = async (itemId: string) => {
-    if (!itemId) {
+    if (!itemId || itemId === EPOS_NONE_VALUE) {
       setFormData((prev) => ({
         ...prev,
         squareItemId: "",
@@ -250,7 +252,7 @@ export function CreateProductModal({
   };
 
   const handleShopifyProductSelect = async (productId: string) => {
-    if (!productId) {
+    if (!productId || productId === EPOS_NONE_VALUE) {
       setFormData((prev) => ({
         ...prev,
         shopifyProductId: "",
@@ -602,7 +604,7 @@ export function CreateProductModal({
                 <div className="space-y-2 ml-6">
                   <Label htmlFor="squareItemId">Square item</Label>
                   <Select
-                    value={formData.squareItemId}
+                    value={formData.squareItemId || EPOS_NONE_VALUE}
                     onValueChange={handleSquareItemSelect}
                     disabled={loading || loadingSquareItems || syncingItemDetails}
                   >
@@ -610,7 +612,7 @@ export function CreateProductModal({
                       <SelectValue placeholder={loadingSquareItems ? "Loading items..." : "Select a Square item (or use Shopify below)"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value={EPOS_NONE_VALUE}>
                         <span className="text-muted-foreground">None</span>
                       </SelectItem>
                       {squareItems.map((item) => (
@@ -646,7 +648,7 @@ export function CreateProductModal({
                 <div className="space-y-2 ml-6">
                   <Label htmlFor="shopifyProductId">Shopify product</Label>
                   <Select
-                    value={formData.shopifyProductId}
+                    value={formData.shopifyProductId || EPOS_NONE_VALUE}
                     onValueChange={handleShopifyProductSelect}
                     disabled={loading || loadingShopifyItems || syncingItemDetails}
                   >
@@ -654,7 +656,7 @@ export function CreateProductModal({
                       <SelectValue placeholder={loadingShopifyItems ? "Loading products..." : "Select a Shopify product (or use Square above)"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value={EPOS_NONE_VALUE}>
                         <span className="text-muted-foreground">None</span>
                       </SelectItem>
                       {shopifyItems.map((item) => (
