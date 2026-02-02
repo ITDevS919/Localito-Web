@@ -45,6 +45,13 @@ interface Business {
   username: string;
 }
 
+interface Customer {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+}
+
 export default function AdminMessagesPage() {
   useRequireRole("admin", "/admin");
   const { user } = useAuth();
@@ -56,9 +63,13 @@ export default function AdminMessagesPage() {
   const [initializing, setInitializing] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
+  const [recipientType, setRecipientType] = useState<"business" | "customer">("business");
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [creatingRoom, setCreatingRoom] = useState(false);
 
   // Initialize Firebase auth on mount
@@ -90,10 +101,10 @@ export default function AdminMessagesPage() {
   }, [user, initializing]);
 
   useEffect(() => {
-    if (newConversationOpen && businesses.length === 0) {
-      loadBusinesses();
-    }
-  }, [newConversationOpen]);
+    if (!newConversationOpen) return;
+    if (recipientType === "business" && businesses.length === 0) loadBusinesses();
+    if (recipientType === "customer" && customers.length === 0) loadCustomers();
+  }, [newConversationOpen, recipientType]);
 
   const loadBusinesses = async () => {
     setLoadingBusinesses(true);
@@ -112,38 +123,88 @@ export default function AdminMessagesPage() {
     }
   };
 
-  const handleCreateConversation = async () => {
-    if (!selectedBusinessId || !user || creatingRoom) return;
+  const loadCustomers = async () => {
+    setLoadingCustomers(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/users?role=customer&limit=100`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCustomers(data.data.users || []);
+      }
+    } catch (error) {
+      console.error("Failed to load customers:", error);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
 
-    const business = businesses.find((b) => b.id === selectedBusinessId);
-    if (!business) return;
+  const handleCreateConversation = async () => {
+    if (!user || creatingRoom) return;
+
+    if (recipientType === "business") {
+      if (!selectedBusinessId) return;
+      const business = businesses.find((b) => b.id === selectedBusinessId);
+      if (!business) return;
+
+      setCreatingRoom(true);
+      try {
+        const roomId = await getOrCreateChatRoom(
+          user.id,
+          business.user_id,
+          user.username,
+          business.business_name,
+          user.role || "admin",
+          "business",
+          "admin_initiated"
+        );
+
+        const newRoom = rooms.find((r) => r.id === roomId);
+        if (newRoom) setSelectedRoom(newRoom);
+
+        setNewConversationOpen(false);
+        setSelectedBusinessId("");
+      } catch (error) {
+        console.error("Failed to create conversation:", error);
+      } finally {
+        setCreatingRoom(false);
+      }
+      return;
+    }
+
+    // Customer
+    if (!selectedCustomerId) return;
+    const customer = customers.find((c) => c.id === selectedCustomerId);
+    if (!customer) return;
 
     setCreatingRoom(true);
     try {
       const roomId = await getOrCreateChatRoom(
         user.id,
-        business.user_id,
+        customer.id,
         user.username,
-        business.business_name,
+        customer.username || customer.email,
         user.role || "admin",
-        "business",
+        "customer",
         "admin_initiated"
       );
 
-      // Find the room in the current rooms list
       const newRoom = rooms.find((r) => r.id === roomId);
-      if (newRoom) {
-        setSelectedRoom(newRoom);
-      }
+      if (newRoom) setSelectedRoom(newRoom);
 
       setNewConversationOpen(false);
-      setSelectedBusinessId("");
+      setSelectedCustomerId("");
     } catch (error) {
       console.error("Failed to create conversation:", error);
     } finally {
       setCreatingRoom(false);
     }
   };
+
+  const canStartConversation =
+    (recipientType === "business" && selectedBusinessId) ||
+    (recipientType === "customer" && selectedCustomerId);
 
   useEffect(() => {
     if (!selectedRoom || !user) return;
@@ -412,33 +473,86 @@ export default function AdminMessagesPage() {
       </div>
 
       {/* New Conversation Dialog */}
-      <Dialog open={newConversationOpen} onOpenChange={setNewConversationOpen}>
+      <Dialog
+        open={newConversationOpen}
+        onOpenChange={(open) => {
+          setNewConversationOpen(open);
+          if (!open) {
+            setSelectedBusinessId("");
+            setSelectedCustomerId("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Start New Conversation</DialogTitle>
             <DialogDescription>
-              Select a business to start a new conversation
+              Choose whether to message a business or a customer, then select who to start a conversation with.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {loadingBusinesses ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Recipient type</label>
+              <Select
+                value={recipientType}
+                onValueChange={(v: "business" | "customer") => {
+                  setRecipientType(v);
+                  setSelectedBusinessId("");
+                  setSelectedCustomerId("");
+                }}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a business" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {businesses.map((business) => (
-                    <SelectItem key={business.id} value={business.id}>
-                      {business.business_name} ({business.email})
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
                 </SelectContent>
               </Select>
-            )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {recipientType === "business" ? "Select a business" : "Select a customer"}
+              </label>
+              {recipientType === "business" ? (
+                loadingBusinesses ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a business" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businesses.map((business) => (
+                        <SelectItem key={business.id} value={business.id}>
+                          {business.business_name} ({business.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )
+              ) : loadingCustomers ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.username || customer.email} ({customer.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -446,12 +560,13 @@ export default function AdminMessagesPage() {
               onClick={() => {
                 setNewConversationOpen(false);
                 setSelectedBusinessId("");
+                setSelectedCustomerId("");
               }}
               disabled={creatingRoom}
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateConversation} disabled={!selectedBusinessId || creatingRoom}>
+            <Button onClick={handleCreateConversation} disabled={!canStartConversation || creatingRoom}>
               {creatingRoom ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
