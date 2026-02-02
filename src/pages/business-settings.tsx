@@ -374,6 +374,27 @@ export default function BusinessSettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Shopify Integration Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Shopify Integration
+            </CardTitle>
+            <CardDescription>
+              Connect your Shopify store to sync products with Localito.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="default" className="w-full sm:w-auto">
+              <Link href="/business/shopify-settings" className="inline-flex items-center">
+                Open Shopify settings
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Business Information Card */}
         <Card>
           <CardHeader>

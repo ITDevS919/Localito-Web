@@ -21,6 +21,9 @@ export interface Product {
   isApproved?: boolean;
   stock?: number;
   description?: string;
+  syncFromEpos?: boolean;
+  squareItemId?: string | null;
+  shopifyProductId?: string | null;
 }
 
 export interface Category {

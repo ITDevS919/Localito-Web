@@ -52,10 +52,14 @@ export function CreateProductModal({
     imageUrl: "",
     syncFromEpos: false,
     squareItemId: "",
+    shopifyProductId: "",
   });
   const [squareConnected, setSquareConnected] = useState(false);
   const [squareItems, setSquareItems] = useState<Array<{ id: string; name: string; price?: number }>>([]);
   const [loadingSquareItems, setLoadingSquareItems] = useState(false);
+  const [shopifyConnected, setShopifyConnected] = useState(false);
+  const [shopifyItems, setShopifyItems] = useState<Array<{ id: string; name: string; price?: number }>>([]);
+  const [loadingShopifyItems, setLoadingShopifyItems] = useState(false);
   const [syncingItemDetails, setSyncingItemDetails] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -90,24 +94,29 @@ export function CreateProductModal({
         }
       };
 
-      // Check Square connection status
+      // Check Square and Shopify connection status
       const checkSquareStatus = async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/business/square/status`, {
-            credentials: "include",
-          });
+          const res = await fetch(`${API_BASE_URL}/business/square/status`, { credentials: "include" });
           const data = await res.json();
-          if (res.ok && data.success) {
-            setSquareConnected(data.data.connected || false);
-          }
-        } catch (err) {
-          // Silently fail - Square connection check is optional
+          if (res.ok && data.success) setSquareConnected(data.data.connected || false);
+        } catch {
           setSquareConnected(false);
+        }
+      };
+      const checkShopifyStatus = async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/business/shopify/status`, { credentials: "include" });
+          const data = await res.json();
+          if (res.ok && data.success) setShopifyConnected(data.data.connected || false);
+        } catch {
+          setShopifyConnected(false);
         }
       };
 
       fetchCategories();
       checkSquareStatus();
+      checkShopifyStatus();
     }
   }, [open]);
 
@@ -121,8 +130,9 @@ export function CreateProductModal({
         stock: product.stock?.toString() || "",
         category: product.category || "",
         imageUrl: product.image || "",
-        syncFromEpos: (product as any).syncFromEpos || false,
-        squareItemId: (product as any).squareItemId || "",
+        syncFromEpos: product.syncFromEpos ?? false,
+        squareItemId: product.squareItemId ?? "",
+        shopifyProductId: product.shopifyProductId ?? "",
       });
       setImageMethod("url");
       setUploadedImage(null);
@@ -140,6 +150,7 @@ export function CreateProductModal({
         imageUrl: "",
         syncFromEpos: false,
         squareItemId: "",
+        shopifyProductId: "",
       });
       setUploadedImage(null);
       setImageMethod("upload");
@@ -149,23 +160,25 @@ export function CreateProductModal({
     }
   }, [product, open]);
 
-  // Fetch Square items when sync is enabled
+  // Fetch Square items when sync from Square is possible
   useEffect(() => {
-    if (open && squareConnected && formData.syncFromEpos && squareItems.length === 0) {
+    if (open && squareConnected && formData.squareItemId === "" && squareItems.length === 0) {
       fetchSquareItems();
     }
-  }, [open, squareConnected, formData.syncFromEpos]);
+  }, [open, squareConnected]);
+  // Fetch Shopify items when Shopify is connected
+  useEffect(() => {
+    if (open && shopifyConnected && formData.shopifyProductId === "" && shopifyItems.length === 0) {
+      fetchShopifyItems();
+    }
+  }, [open, shopifyConnected]);
 
   const fetchSquareItems = async () => {
     setLoadingSquareItems(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/business/square/items`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${API_BASE_URL}/business/square/items`, { credentials: "include" });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setSquareItems(data.data || []);
-      }
+      if (res.ok && data.success) setSquareItems(data.data || []);
     } catch (err) {
       console.error("Failed to fetch Square items:", err);
       setError("Failed to load Square items");
@@ -174,19 +187,38 @@ export function CreateProductModal({
     }
   };
 
+  const fetchShopifyItems = async () => {
+    setLoadingShopifyItems(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/business/shopify/items`, { credentials: "include" });
+      const data = await res.json();
+      if (res.ok && data.success) setShopifyItems(data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch Shopify items:", err);
+      setError("Failed to load Shopify items");
+    } finally {
+      setLoadingShopifyItems(false);
+    }
+  };
+
   const handleSquareItemSelect = async (itemId: string) => {
-    // Find the selected item in the squareItems array to get price immediately
-    const selectedItem = squareItems.find(item => item.id === itemId);
-    
-    // Update formData with squareItemId and price (if available)
+    if (!itemId) {
+      setFormData((prev) => ({
+        ...prev,
+        squareItemId: "",
+        syncFromEpos: !!prev.shopifyProductId,
+      }));
+      return;
+    }
+    const selectedItem = squareItems.find((item) => item.id === itemId);
     setFormData((prev) => ({
       ...prev,
       squareItemId: itemId,
+      shopifyProductId: "",
+      syncFromEpos: true,
       price: selectedItem?.price ? selectedItem.price.toString() : prev.price,
-      // Set stock to empty string initially, will be updated after API call
       stock: "",
     }));
-    
     setSyncingItemDetails(true);
     
     try {
@@ -212,6 +244,45 @@ export function CreateProductModal({
         ...prev,
         stock: "",
       }));
+    } finally {
+      setSyncingItemDetails(false);
+    }
+  };
+
+  const handleShopifyProductSelect = async (productId: string) => {
+    if (!productId) {
+      setFormData((prev) => ({
+        ...prev,
+        shopifyProductId: "",
+        syncFromEpos: !!prev.squareItemId,
+      }));
+      return;
+    }
+    const selected = shopifyItems.find((item) => item.id === productId);
+    setFormData((prev) => ({
+      ...prev,
+      shopifyProductId: productId,
+      squareItemId: "",
+      syncFromEpos: true,
+      price: selected?.price ? selected.price.toString() : prev.price,
+      stock: "",
+    }));
+    setSyncingItemDetails(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/business/shopify/items/${productId}/details`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        setFormData((prev) => ({
+          ...prev,
+          shopifyProductId: productId,
+          price: data.data.price != null ? String(data.data.price) : prev.price,
+          stock: data.data.stock != null ? String(data.data.stock) : "0",
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify product details:", err);
     } finally {
       setSyncingItemDetails(false);
     }
@@ -249,8 +320,8 @@ export function CreateProductModal({
     }
     
     // Validate Square Item ID when sync is enabled
-    if (formData.syncFromEpos && !formData.squareItemId.trim()) {
-      setError("Square Item ID is required when EPOS sync is enabled");
+    if (formData.syncFromEpos && !formData.squareItemId.trim() && !formData.shopifyProductId.trim()) {
+      setError("Select a Square item or Shopify product when EPOS sync is enabled");
       setLoading(false);
       return;
     }
@@ -293,8 +364,9 @@ export function CreateProductModal({
           stock: formData.syncFromEpos ? (parseInt(formData.stock) || 0) : parseInt(formData.stock), // Use synced stock value or 0 as fallback
           category: formData.category,
           images,
-          syncFromEpos: formData.syncFromEpos,
-          squareItemId: formData.syncFromEpos ? formData.squareItemId.trim() || null : null,
+          syncFromEpos: !!(formData.squareItemId.trim() || formData.shopifyProductId.trim()),
+          squareItemId: formData.squareItemId.trim() || null,
+          shopifyProductId: formData.shopifyProductId.trim() || null,
         }),
       });
 
@@ -317,6 +389,7 @@ export function CreateProductModal({
           imageUrl: "",
           syncFromEpos: false,
           squareItemId: "",
+          shopifyProductId: "",
         });
         setUploadedImage(null);
         setImageMethod("upload");
@@ -444,11 +517,11 @@ export function CreateProductModal({
                 onChange={(e) => handleChange("price", e.target.value)}
                 placeholder="0.00"
                 required
-                disabled={loading || !!(formData.syncFromEpos && formData.squareItemId)}
+                disabled={loading || !!(formData.syncFromEpos && (formData.squareItemId || formData.shopifyProductId))}
               />
-              {formData.syncFromEpos && formData.squareItemId && (
+              {formData.syncFromEpos && (formData.squareItemId || formData.shopifyProductId) && (
                 <p className="text-xs text-muted-foreground">
-                  Price synced from Square
+                  Price synced from {formData.squareItemId ? "Square" : "Shopify"}
                 </p>
               )}
             </div>
@@ -463,13 +536,13 @@ export function CreateProductModal({
                 min="0"
                 value={formData.stock}
                 onChange={(e) => handleChange("stock", e.target.value)}
-                placeholder={formData.syncFromEpos ? "Synced from Square" : "0"}
+                placeholder={formData.syncFromEpos ? "Synced from EPOS" : "0"}
                 required={!formData.syncFromEpos}
                 disabled={loading || formData.syncFromEpos}
               />
               {formData.syncFromEpos && (
                 <p className="text-xs text-muted-foreground">
-                  Stock synced automatically from Square EPOS
+                  Stock synced automatically from {formData.squareItemId ? "Square" : "Shopify"}
                 </p>
               )}
             </div>
@@ -501,38 +574,45 @@ export function CreateProductModal({
             </Select>
           </div>
 
-          {/* EPOS Sync Section */}
-          {squareConnected && (
+          {/* EPOS Sync Section (Square or Shopify) */}
+          {(squareConnected || shopifyConnected) && (
             <div className="space-y-4 p-4 border rounded-lg bg-secondary/50">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="syncFromEpos"
                   checked={formData.syncFromEpos}
                   onCheckedChange={(checked) =>
-                    setFormData({ ...formData, syncFromEpos: checked === true })
+                    setFormData({
+                      ...formData,
+                      syncFromEpos: checked === true,
+                      ...(checked !== true ? { squareItemId: "", shopifyProductId: "" } : {}),
+                    })
                   }
                   disabled={loading}
                 />
                 <Label htmlFor="syncFromEpos" className="font-semibold cursor-pointer">
-                  Sync Stock from Square EPOS
+                  Sync stock from EPOS (Square or Shopify)
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground ml-6">
-                Enable real-time stock synchronization from your Square POS system
+                Link to a Square item or Shopify product for real-time stock sync
               </p>
 
-              {formData.syncFromEpos && (
+              {formData.syncFromEpos && squareConnected && (
                 <div className="space-y-2 ml-6">
-                  <Label htmlFor="squareItemId">Square Item *</Label>
+                  <Label htmlFor="squareItemId">Square item</Label>
                   <Select
                     value={formData.squareItemId}
                     onValueChange={handleSquareItemSelect}
                     disabled={loading || loadingSquareItems || syncingItemDetails}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={loadingSquareItems ? "Loading items..." : "Select a Square item"} />
+                      <SelectValue placeholder={loadingSquareItems ? "Loading items..." : "Select a Square item (or use Shopify below)"} />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">
+                        <span className="text-muted-foreground">None</span>
+                      </SelectItem>
                       {squareItems.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
                           {item.name} {item.price ? `(£${item.price.toFixed(2)})` : ''}
@@ -561,17 +641,47 @@ export function CreateProductModal({
                   )}
                 </div>
               )}
+
+              {formData.syncFromEpos && shopifyConnected && (
+                <div className="space-y-2 ml-6">
+                  <Label htmlFor="shopifyProductId">Shopify product</Label>
+                  <Select
+                    value={formData.shopifyProductId}
+                    onValueChange={handleShopifyProductSelect}
+                    disabled={loading || loadingShopifyItems || syncingItemDetails}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingShopifyItems ? "Loading products..." : "Select a Shopify product (or use Square above)"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">
+                        <span className="text-muted-foreground">None</span>
+                      </SelectItem>
+                      {shopifyItems.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name} {item.price != null ? `(£${item.price.toFixed(2)})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.shopifyProductId && !syncingItemDetails && (
+                    <p className="text-xs text-muted-foreground">
+                      Stock and price will be synced from Shopify
+                    </p>
+                  )}
+                  {!loadingShopifyItems && shopifyItems.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No products in your Shopify store</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {!squareConnected && (
+          {!squareConnected && !shopifyConnected && (
             <Alert>
               <AlertDescription className="text-xs">
-                <strong>Square Integration:</strong> Connect your Square account in{" "}
-                <a href="/business/square-settings" className="underline text-primary">
-                  Square Settings
-                </a>{" "}
-                to enable real-time stock synchronization.
+                <strong>EPOS sync:</strong> Connect Square or Shopify in{" "}
+                <a href="/business/settings" className="underline text-primary">Settings</a> to sync stock.
               </AlertDescription>
             </Alert>
           )}

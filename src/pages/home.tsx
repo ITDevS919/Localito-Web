@@ -64,7 +64,7 @@ function CTASection() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" as const },
+      transition: { duration: 0.6, ease: "easeOut" },
     },
   };
 
@@ -78,7 +78,7 @@ function CTASection() {
       >
         <motion.h2
           variants={itemVariants}
-          className="text-5xl md:text-6xl font-bold tracking-tight text-slate-900 dark:text-white"
+          className="text-5xl md:text-6xl font-extrabold tracking-tighter text-slate-900 dark:text-white"
         >
           Ready to support local?
         </motion.h2>
@@ -131,7 +131,7 @@ function ProgressSection() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" as const },
+      transition: { duration: 0.6, ease: "easeOut" },
     },
   };
 
@@ -367,8 +367,8 @@ export default function Home() {
         <header className="relative pt-32 pb-16 px-6 overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <div className="max-w-4xl">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tighter leading-[1.05] text-primary">
-                Search by business, product or service
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tighter leading-[1.05] text-black dark:text-slate-50">
+                Buy now and pick up in minutes, or book your service.
               </h1>
               <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 max-w-xl">
                 A curated marketplace for independent makers and local shops.
@@ -384,7 +384,7 @@ export default function Home() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full h-14 pl-0 pr-12 bg-transparent border-0 focus:outline-none focus:ring-0 text-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
-                    placeholder="Search the city..."
+                    placeholder="Search for local businesses, products or services..."
                   />
                   <button
                     type="submit"
@@ -461,7 +461,7 @@ export default function Home() {
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
                 <div>
                   <p className="text-sm font-medium tracking-widest text-primary uppercase mb-3">Neighbourhood Picks</p>
-                  <h2 className="text-5xl font-extrabold tracking-tighter mb-4">Shop Local, Book Local.</h2>
+                  <h2 className="text-5xl font-extrabold tracking-tighter mb-4">Shop Local, Shop Real.</h2>
                   <p className="text-xl text-slate-500 dark:text-slate-400">
                     Discover unique products from independent businesses in your community.
                   </p>

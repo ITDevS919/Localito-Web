@@ -19,6 +19,7 @@ import BusinessOrdersPage from "@/pages/business-orders";
 import BusinessOrderDetailPage from "@/pages/business-order-detail";
 import BusinessSettingsPage from "@/pages/business-settings";
 import BusinessSquareSettingsPage from "@/pages/business-square-settings";
+import BusinessShopifySettingsPage from "@/pages/business-shopify-settings";
 import BusinessAvailabilityPage from "@/pages/business-availability";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminProductsPage from "@/pages/admin-products";
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/business/orders/:id" component={BusinessOrderDetailPage} />
       <Route path="/business/settings" component={BusinessSettingsPage} />
       <Route path="/business/square-settings" component={BusinessSquareSettingsPage} />
+      <Route path="/business/shopify-settings" component={BusinessShopifySettingsPage} />
       <Route path="/business/availability" component={BusinessAvailabilityPage} />
       <Route path="/business/posts" component={BusinessPostsPage} />
       <Route path="/business/payouts" component={BusinessPayoutsPage} />

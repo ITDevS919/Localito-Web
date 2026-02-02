@@ -12,7 +12,7 @@ export default function DeleteAccountPage() {
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/10 selection:text-primary">
       <Navbar />
 
-      <main className="pt-28 md:pt-32 pb-12 md:pb-16">
+      <main className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">
           <header className="mb-10">
             <h1 className="text-3xl md:text-4xl font-heading font-bold tracking-tight text-primary mb-3">

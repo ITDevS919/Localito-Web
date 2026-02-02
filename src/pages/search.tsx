@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Filter, MapPin, Loader2, Search, Navigation } from "lucide-react";
+import { Filter, MapPin, Loader2, Search, Navigation, ChevronDown, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 interface Category {
   id: string;
   name: string;
@@ -280,13 +282,13 @@ export default function SearchPage() {
     fetchServices();
   }, [query, locationQuery, location, API_BASE_URL, userCoords, businessTypeCategoryId]);
 
-  // Handle category toggle
+  // Handle category toggle – update state and auto-apply to URL
   const handleCategoryToggle = (categoryId: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
+    const next = selectedCategories.includes(categoryId)
+      ? selectedCategories.filter(id => id !== categoryId)
+      : [...selectedCategories, categoryId];
+    setSelectedCategories(next);
+    setLocation(buildSearchUrl({ categories: next }));
   };
 
   // Build search URL from current state
@@ -307,10 +309,6 @@ export default function SearchPage() {
     setLocation(buildSearchUrl());
   };
 
-  const handleApplyFilters = () => {
-    setLocation(buildSearchUrl());
-  };
-
   // Quick filter pills: apply sort or price in one click
   const handleQuickFilter = (filter: "nearest" | "top-rated" | "under-50") => {
     if (filter === "nearest") {
@@ -322,6 +320,15 @@ export default function SearchPage() {
       setPriceRange([0, 50]);
     }
   };
+
+  // Count active filters for badge
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (businessTypeCategoryId) count += 1;
+    if (selectedCategories.length > 0) count += selectedCategories.length;
+    if (priceRange[0] > 0 || priceRange[1] < 1000) count += 1;
+    return count;
+  }, [businessTypeCategoryId, selectedCategories.length, priceRange]);
 
   // Group categories for sidebar: top-level (no parent) and Services with its children
   const { topLevelCategories, servicesParent, serviceSubcategories } = useMemo(() => {
@@ -392,9 +399,6 @@ export default function SearchPage() {
     }
     return filtered;
   }, [services, selectedCategories, categories]);
-
-  console.log("Filtered and sorted products:", filteredAndSortedProducts);
-
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
@@ -487,7 +491,7 @@ export default function SearchPage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Sort by</span>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px] rounded-lg border-border bg-background">
@@ -510,212 +514,231 @@ export default function SearchPage() {
           </div>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-4">
-          {/* Sidebar Filters – modern layout */}
-          <aside className="lg:col-span-1">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
-              {/* Quick Filters – pill buttons */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  QUICK FILTERS
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickFilter("nearest")}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                      sortBy === "distance-nearest" && userCoords
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    Nearest
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickFilter("top-rated")}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                      sortBy === "rating"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    Top Rated
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickFilter("under-50")}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                      priceRange[1] <= 50
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    Under £50
-                  </button>
-                </div>
-              </div>
-
-              {/* Price Range – match reference order */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  PRICE RANGE
-                </h3>
-                <Slider 
-                  value={priceRange} 
-                  onValueChange={(vals) => setPriceRange([vals[0], vals[1]])}
-                  max={1000} 
-                  step={1} 
-                  min={0}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>£{priceRange[0]}</span>
-                  <span>£{priceRange[1]}</span>
-                </div>
-              </div>
-
-              {/* Business type – filter by business's declared type (primary_category_id) */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  BUSINESS TYPE
-                </h3>
-                <Select
-                  value={businessTypeCategoryId || "all"}
-                  onValueChange={(value) => {
-                    setBusinessTypeCategoryId(value === "all" ? null : value);
-                  }}
-                >
-                  <SelectTrigger className="w-full rounded-lg border-border bg-background">
-                    <SelectValue placeholder="All types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Categories – top-level + Services subsection with subcategories */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  CATEGORIES
-                </h3>
-                {loadingCategories ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {categories.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No categories available</p>
-                    ) : (
-                      <>
-                        {/* Top-level categories except Services and Other (shown below) */}
-                        {topLevelCategories
-                          .filter(c => c.name !== "Services" && c.name !== "Other")
-                          .map(cat => (
-                            <label
-                              key={cat.id}
-                              htmlFor={`cat-${cat.id}`}
-                              className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 hover:bg-muted/50"
-                            >
-                              <Checkbox
-                                id={`cat-${cat.id}`}
-                                checked={selectedCategories.includes(cat.id)}
-                                onCheckedChange={() => handleCategoryToggle(cat.id)}
-                              />
-                              <span className="text-sm font-medium select-none">{cat.name}</span>
-                            </label>
-                          ))}
-                        {/* Services section with subcategories */}
-                        {servicesParent && (
-                          <div className="space-y-1.5 pt-1">
-                            <div className="text-xs font-semibold text-muted-foreground pl-0.5">
-                              Services
-                            </div>
-                            {serviceSubcategories.map(cat => (
-                              <label
-                                key={cat.id}
-                                htmlFor={`cat-${cat.id}`}
-                                className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 pl-4 hover:bg-muted/50"
-                              >
-                                <Checkbox
-                                  id={`cat-${cat.id}`}
-                                  checked={selectedCategories.includes(cat.id)}
-                                  onCheckedChange={() => handleCategoryToggle(cat.id)}
-                                />
-                                <span className="text-sm font-medium select-none">{cat.name}</span>
-                              </label>
-                            ))}
-                            <label
-                              htmlFor={`cat-${servicesParent.id}`}
-                              className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 pl-4 hover:bg-muted/50"
-                            >
-                              <Checkbox
-                                id={`cat-${servicesParent.id}`}
-                                checked={selectedCategories.includes(servicesParent.id)}
-                                onCheckedChange={() => handleCategoryToggle(servicesParent.id)}
-                              />
-                              <span className="text-sm font-medium select-none">General / Other</span>
-                            </label>
-                          </div>
-                        )}
-                        {/* Other (top-level) */}
-                        {topLevelCategories
-                          .filter(c => c.name === "Other")
-                          .map(cat => (
-                            <label
-                              key={cat.id}
-                              htmlFor={`cat-${cat.id}`}
-                              className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 -mx-1 px-1 hover:bg-muted/50"
-                            >
-                              <Checkbox
-                                id={`cat-${cat.id}`}
-                                checked={selectedCategories.includes(cat.id)}
-                                onCheckedChange={() => handleCategoryToggle(cat.id)}
-                              />
-                              <span className="text-sm font-medium select-none">{cat.name}</span>
-                            </label>
-                          ))}
-                      </>
-                    )}
-                  </div>
+        {/* Sidebar filters + results */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar – filters in collapsible dropdowns */}
+          <aside className="w-full lg:w-64 shrink-0">
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                    {activeFilterCount > 9 ? "9+" : activeFilterCount}
+                  </span>
                 )}
               </div>
+              <ScrollArea className="max-h-[min(70vh,520px)]">
+                <div className="space-y-1 pr-2">
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
+                      Business type
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pb-3 pl-0 pt-1">
+                        <Select
+                          value={businessTypeCategoryId || "all"}
+                          onValueChange={(value) => {
+                            setBusinessTypeCategoryId(value === "all" ? null : value);
+                          }}
+                        >
+                          <SelectTrigger className="w-full rounded-lg border-border bg-background h-9 text-sm">
+                            <SelectValue placeholder="All types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All types</SelectItem>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
 
-              {/* Location */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  LOCATION
-                </h3>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="pl-9 h-10 rounded-lg border-border bg-muted/30"
-                    placeholder="e.g. SW1A 1AA or London"
-                    value={filterLocation}
-                    onChange={(e) => setFilterLocation(e.target.value)}
-                    disabled={useMyLocation}
-                  />
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
+                      Categories
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pb-3 pt-1 space-y-0.5">
+                        {loadingCategories ? (
+                          <div className="flex justify-center py-3">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : categories.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-2">No categories</p>
+                        ) : (
+                          <>
+                            {topLevelCategories
+                              .filter(c => c.name !== "Services" && c.name !== "Other")
+                              .map(cat => (
+                                <label
+                                  key={cat.id}
+                                  htmlFor={`side-cat-${cat.id}`}
+                                  className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 px-1 hover:bg-muted/50"
+                                >
+                                  <Checkbox
+                                    id={`side-cat-${cat.id}`}
+                                    checked={selectedCategories.includes(cat.id)}
+                                    onCheckedChange={() => handleCategoryToggle(cat.id)}
+                                  />
+                                  <span className="text-sm select-none">{cat.name}</span>
+                                </label>
+                              ))}
+                            {servicesParent && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground pt-2 pb-0.5 px-1">Services</div>
+                                {serviceSubcategories.map(cat => (
+                                  <label
+                                    key={cat.id}
+                                    htmlFor={`side-cat-${cat.id}`}
+                                    className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 px-1 pl-3 hover:bg-muted/50"
+                                  >
+                                    <Checkbox
+                                      id={`side-cat-${cat.id}`}
+                                      checked={selectedCategories.includes(cat.id)}
+                                      onCheckedChange={() => handleCategoryToggle(cat.id)}
+                                    />
+                                    <span className="text-sm select-none">{cat.name}</span>
+                                  </label>
+                                ))}
+                                <label
+                                  htmlFor={`side-cat-${servicesParent.id}`}
+                                  className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 px-1 pl-3 hover:bg-muted/50"
+                                >
+                                  <Checkbox
+                                    id={`side-cat-${servicesParent.id}`}
+                                    checked={selectedCategories.includes(servicesParent.id)}
+                                    onCheckedChange={() => handleCategoryToggle(servicesParent.id)}
+                                  />
+                                  <span className="text-sm select-none">General / Other</span>
+                                </label>
+                              </>
+                            )}
+                            {topLevelCategories
+                              .filter(c => c.name === "Other")
+                              .map(cat => (
+                                <label
+                                  key={cat.id}
+                                  htmlFor={`side-cat-${cat.id}`}
+                                  className="flex items-center gap-2 cursor-pointer rounded-md py-1.5 px-1 hover:bg-muted/50"
+                                >
+                                  <Checkbox
+                                    id={`side-cat-${cat.id}`}
+                                    checked={selectedCategories.includes(cat.id)}
+                                    onCheckedChange={() => handleCategoryToggle(cat.id)}
+                                  />
+                                  <span className="text-sm select-none">{cat.name}</span>
+                                </label>
+                              ))}
+                          </>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
+                      Quick filters
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pb-3 pt-1 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFilter("nearest")}
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                            sortBy === "distance-nearest" && userCoords
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          Nearest
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFilter("top-rated")}
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                            sortBy === "rating"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          Top rated
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFilter("under-50")}
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                            priceRange[1] <= 50
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          Under £50
+                        </button>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
+                      Price range
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pb-3 pt-1">
+                        <Slider
+                          value={priceRange}
+                          onValueChange={(vals) => setPriceRange([vals[0], vals[1]])}
+                          max={1000}
+                          step={1}
+                          min={0}
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>£{priceRange[0]}</span>
+                          <span>£{priceRange[1]}</span>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
+                      Location
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pb-3 pt-1">
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            className="pl-9 h-9 rounded-lg border-border bg-muted/30 text-sm"
+                            placeholder="e.g. SW1A 1AA or London"
+                            value={filterLocation}
+                            onChange={(e) => setFilterLocation(e.target.value)}
+                            onBlur={() => setLocation(buildSearchUrl({ loc: filterLocation }))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") setLocation(buildSearchUrl({ loc: filterLocation }));
+                            }}
+                            disabled={useMyLocation}
+                          />
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
-              </div>
-
-              <Button 
-                type="button"
-                onClick={handleApplyFilters}
-                className="w-full bg-primary cursor-pointer"
-              >
-                Apply Filters
-              </Button>
+              </ScrollArea>
             </div>
           </aside>
 
-          {/* Results Grid */}
-          <div className="lg:col-span-3">
+          {/* Results */}
+          <div className="flex-1 min-w-0">
             <Tabs
               value={activeTab}
               onValueChange={(v) => {
