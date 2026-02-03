@@ -69,7 +69,7 @@ export default function WishlistPage() {
             <p className="text-muted-foreground mb-6">
               Save your favorite products and access them anytime.
             </p>
-            <Link href="/login/customer">
+            <Link href="/login/customer?redirect=/wishlist">
               <Button>Sign In</Button>
             </Link>
           </div>

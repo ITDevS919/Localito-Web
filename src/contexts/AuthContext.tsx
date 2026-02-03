@@ -25,7 +25,7 @@ interface RetailerData extends BusinessData {}
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, options?: { redirect?: string }) => Promise<void>;
   signup: (username: string, email: string, password: string, role: UserRole, businessData?: BusinessData) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, options?: { redirect?: string }) => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
@@ -85,9 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(data.data);
-    
-    // Redirect based on role
-    if (data.data.role === "business") {
+
+    const redirectPath = options?.redirect?.startsWith("/") ? options.redirect : null;
+
+    if (redirectPath) {
+      setLocation(redirectPath);
+    } else if (data.data.role === "business") {
       setLocation("/business/dashboard");
     } else if (data.data.role === "admin") {
       setLocation("/admin/dashboard");

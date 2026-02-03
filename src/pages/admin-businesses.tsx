@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, Users, AlertCircle, MapPin, Phone, Mail, Settings, Calendar } from "lucide-react";
+import { Loader2, CheckCircle2, Users, AlertCircle, MapPin, Phone, Mail, Settings, Calendar, Ban, Play, Store } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import {
   AlertDialog,
@@ -59,6 +59,7 @@ interface Business {
   username: string;
   created_at: string;
   is_approved: boolean;
+  is_suspended?: boolean;
   commission_rate_override?: number | null;
   trial_starts_at?: string;
   trial_ends_at?: string | null;
@@ -82,6 +83,10 @@ export default function AdminBusinessesPage() {
   const [trialEndsAt, setTrialEndsAt] = useState<string>("");
   const [billingStatus, setBillingStatus] = useState<string>("");
   const [savingBilling, setSavingBilling] = useState(false);
+  const [suspending, setSuspending] = useState<string | null>(null);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [selectedSuspendBusiness, setSelectedSuspendBusiness] = useState<Business | null>(null);
+  const [suspendAction, setSuspendAction] = useState<"suspend" | "unsuspend">("suspend");
 
   useEffect(() => {
     loadPendingBusinesses();
@@ -218,6 +223,44 @@ export default function AdminBusinessesPage() {
       setError(err.message);
     } finally {
       setSavingBilling(false);
+    }
+  };
+
+  const handleSuspendClick = (business: Business, action: "suspend" | "unsuspend") => {
+    setSelectedSuspendBusiness(business);
+    setSuspendAction(action);
+    setSuspendDialogOpen(true);
+  };
+
+  const handleSuspendConfirm = async () => {
+    if (!selectedSuspendBusiness) return;
+
+    setSuspending(selectedSuspendBusiness.id);
+    try {
+      const endpoint = suspendAction === "suspend" 
+        ? `/admin/businesses/${selectedSuspendBusiness.id}/suspend`
+        : `/admin/businesses/${selectedSuspendBusiness.id}/unsuspend`;
+
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || `Failed to ${suspendAction} business`);
+      }
+
+      // Refresh the all businesses list
+      setSuspendDialogOpen(false);
+      setSelectedSuspendBusiness(null);
+      loadAllBusinesses();
+    } catch (err: any) {
+      setError(err.message);
+      setSuspendDialogOpen(false);
+      setSelectedSuspendBusiness(null);
+    } finally {
+      setSuspending(null);
     }
   };
 
@@ -387,6 +430,9 @@ export default function AdminBusinessesPage() {
                             {business.is_approved && (
                               <Badge className="bg-green-600 hover:bg-green-700">Approved</Badge>
                             )}
+                            {business.is_suspended && (
+                              <Badge className="bg-red-600 hover:bg-red-700">Suspended</Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -421,14 +467,60 @@ export default function AdminBusinessesPage() {
                             </div>
                           )}
                         </div>
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          onClick={() => handleEditBilling(business)}
-                        >
-                          <Settings className="mr-2 h-4 w-4" />
-                          Edit Billing
-                        </Button>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => window.open(`/business/${business.username || business.id}`, '_blank')}
+                          >
+                            <Store className="mr-2 h-4 w-4" />
+                            Profile
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => handleEditBilling(business)}
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            Billing
+                          </Button>
+                          {business.is_suspended ? (
+                            <Button
+                              variant="outline"
+                              className="border-green-600 text-green-600 hover:bg-green-50"
+                              onClick={() => handleSuspendClick(business, "unsuspend")}
+                              disabled={suspending === business.id}
+                            >
+                              {suspending === business.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Restoring...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="mr-2 h-4 w-4" />
+                                  Restore
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="destructive"
+                              onClick={() => handleSuspendClick(business, "suspend")}
+                              disabled={suspending === business.id}
+                            >
+                              {suspending === business.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Suspending...
+                                </>
+                              ) : (
+                                <>
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  Suspend
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -544,6 +636,47 @@ export default function AdminBusinessesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Suspend/Unsuspend Confirmation Dialog */}
+      <AlertDialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {suspendAction === "suspend" ? "Suspend Business?" : "Restore Business?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {suspendAction === "suspend" ? (
+                <>
+                  Are you sure you want to suspend <strong>{selectedSuspendBusiness?.business_name}</strong>? 
+                  This will prevent them from selling on the platform until unsuspended.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to restore <strong>{selectedSuspendBusiness?.business_name}</strong>? 
+                  This will allow them to resume selling on the platform.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!suspending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSuspendConfirm}
+              disabled={!!suspending}
+              className={suspendAction === "suspend" ? "bg-destructive" : "bg-green-600"}
+            >
+              {suspending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {suspendAction === "suspend" ? "Suspending..." : "Restoring..."}
+                </>
+              ) : (
+                suspendAction === "suspend" ? "Suspend" : "Restore"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminDashboardLayout>
   );
 }

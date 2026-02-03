@@ -2,7 +2,7 @@
 
 
 import { useEffect, useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 interface BusinessProfile {
   id: string;
   business_name: string;
+  username?: string;
   primary_category_name?: string;
   business_address?: string;
   postcode?: string;
@@ -25,6 +26,8 @@ interface BusinessProfile {
   banner_image?: string;
   follower_count: number;
   isFollowing?: boolean;
+  is_approved?: boolean;
+  is_suspended?: boolean;
 }
 
 interface BusinessPost {
@@ -34,8 +37,11 @@ interface BusinessPost {
   created_at: string;
 }
 
+const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
 export default function BusinessProfilePage() {
   const { businessId } = useParams();
+  const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
@@ -49,32 +55,8 @@ export default function BusinessProfilePage() {
   useEffect(() => {
     if (businessId) {
       fetchBusinessProfile();
-      fetchPosts();
-      fetchProducts();
-      checkIfOwner();
     }
   }, [businessId, user]);
-
-  const checkIfOwner = async () => {
-    if (!isAuthenticated || user?.role !== "business") {
-      setIsOwner(false);
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/business/profile`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        // Check if the current business's ID matches the profile ID
-        setIsOwner(data.data.id === businessId);
-      }
-    } catch (err) {
-      console.error("Failed to check ownership:", err);
-      setIsOwner(false);
-    }
-  };
 
   const fetchBusinessProfile = async () => {
     try {
@@ -83,8 +65,19 @@ export default function BusinessProfilePage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setBusiness(data.data);
-        setFollowing(data.data.isFollowing || false);
+        const biz = data.data;
+        setBusiness(biz);
+        setFollowing(biz.isFollowing || false);
+        fetchPosts(biz.id);
+        fetchProducts(biz.id);
+        if (biz.username && businessId && isUuid(businessId)) {
+          window.history.replaceState(null, "", `/business/${biz.username}`);
+        }
+        if (isAuthenticated && user?.role === "business") {
+          const profileRes = await fetch(`${API_BASE_URL}/business/profile`, { credentials: "include" });
+          const profileData = await profileRes.json();
+          if (profileRes.ok && profileData.success) setIsOwner(profileData.data.id === biz.id);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch business profile:", err);
@@ -93,9 +86,11 @@ export default function BusinessProfilePage() {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (resolvedId: string) => {
+    const id = resolvedId || business?.id;
+    if (!id) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/business/${businessId}/posts`);
+      const res = await fetch(`${API_BASE_URL}/business/${id}/posts`);
       const data = await res.json();
       if (res.ok && data.success) {
         setPosts(data.data);
@@ -105,9 +100,15 @@ export default function BusinessProfilePage() {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (resolvedId: string) => {
+    const id = resolvedId || business?.id;
+    if (!id) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/products?businessId=${businessId}&isApproved=true`);
+      // Admins see all products, customers see only approved
+      const isAdmin = user?.role === "admin";
+      const approvalParam = isAdmin ? "" : "&isApproved=true";
+      
+      const res = await fetch(`${API_BASE_URL}/products?businessId=${id}${approvalParam}`);
       const data = await res.json();
       if (res.ok && data.success) {
         // Map API response to Product type structure (same as search page)
@@ -157,19 +158,53 @@ export default function BusinessProfilePage() {
     }
   };
 
-  const handleFollow = async () => {
-    if (!isAuthenticated) {
+  const handleShare = async () => {
+    if (!business || !business.business_name) return;
+    const slug = business.username || business.id;
+    const url = `${window.location.origin}/business/${slug}`;
+    const title = `${business.business_name} on Localito`;
+    const text = `Check out ${business.business_name} on Localito`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+        toast({ title: "Shared", description: "Link shared successfully" });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link copied", description: "Profile link copied to clipboard" });
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        await navigator.clipboard.writeText(url).catch(() => {});
+        toast({ title: "Link copied", description: "Profile link copied to clipboard" });
+      }
+    }
+  };
+
+  const handleFollowClick = () => {
+    if (!isAuthenticated || user?.role !== "customer") {
       toast({
-        title: "Login required",
-        description: "Please login to follow businesses",
+        title: "Log in to follow",
+        description: "Log in to follow this shop and see their updates.",
       });
+      const returnPath = `/business/${business?.username || business?.id || businessId}`;
+      setLocation(`/login?redirect=${encodeURIComponent(returnPath)}`);
       return;
     }
+    handleFollow();
+  };
+
+  const handleFollow = async () => {
+    if (!business) return;
 
     setTogglingFollow(true);
     try {
       const method = following ? "DELETE" : "POST";
-      const res = await fetch(`${API_BASE_URL}/business/${businessId}/follow`, {
+      const res = await fetch(`${API_BASE_URL}/business/${business.id}/follow`, {
         method,
         credentials: "include",
       });
@@ -244,61 +279,81 @@ export default function BusinessProfilePage() {
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-2">{business.business_name}</h1>
-                {business.primary_category_name && (
-                  <Badge variant="secondary" className="mb-3 font-normal">
-                    {business.primary_category_name}
-                  </Badge>
+                <h1 className="text-3xl font-bold mb-1">{business.business_name || "Business"}</h1>
+                {business.username && (
+                  <p className="text-sm text-muted-foreground mb-2">@{business.username}</p>
                 )}
+                <div className="flex items-center gap-2 mb-3">
+                  {business.primary_category_name && (
+                    <Badge variant="secondary" className="font-normal">
+                      {business.primary_category_name}
+                    </Badge>
+                  )}
+                  {user?.role === "admin" && business.is_suspended && (
+                    <Badge className="bg-red-600">Suspended</Badge>
+                  )}
+                  {user?.role === "admin" && !business.is_approved && (
+                    <Badge className="bg-yellow-600">Pending Approval</Badge>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                  {business.city && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {business.city}
-                      {business.postcode && `, ${business.postcode}`}
-                    </div>
+                  {(business.business_address || business.city || business.postcode) && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        [business.business_address, business.city, business.postcode].filter(Boolean).join(", ")
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-primary hover:underline focus:underline"
+                    >
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      {business.business_address || [business.city, business.postcode].filter(Boolean).join(", ")}
+                    </a>
                   )}
                   {business.phone && (
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-4 w-4" />
+                    <a
+                      href={`tel:${business.phone.replace(/\s/g, "")}`}
+                      className="flex items-center gap-1 hover:text-primary hover:underline focus:underline"
+                    >
+                      <Phone className="h-4 w-4 shrink-0" />
                       {business.phone}
-                    </div>
+                    </a>
                   )}
                 </div>
-                {business.business_address && (
-                  <p className="text-sm text-muted-foreground mb-4">{business.business_address}</p>
-                )}
-                <div className="flex items-center gap-4">
-                  <Badge variant="secondary" className="gap-1">
-                    <Heart className="h-3 w-3" />
-                    {business.follower_count || 0} followers
-                  </Badge>
+                {/* Vinted-like: followers + Follow always visible (except owner) */}
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <span className="text-sm text-muted-foreground">
+                    <Heart className="h-4 w-4 inline-block align-middle mr-1 text-muted-foreground" />
+                    {business.follower_count ?? 0} followers
+                  </span>
+                  {!isOwner && (
+                    <Button
+                      onClick={handleFollowClick}
+                      disabled={isAuthenticated && user?.role === "customer" && togglingFollow}
+                      variant={following ? "outline" : "default"}
+                      size="sm"
+                      className="shrink-0"
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${following ? "fill-current" : ""}`} />
+                      {togglingFollow && isAuthenticated && user?.role === "customer"
+                        ? "..."
+                        : following
+                          ? "Following"
+                          : "Follow"}
+                    </Button>
+                  )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                {isAuthenticated && user?.role === "customer" && (
-                  <Button
-                    onClick={handleFollow}
-                    disabled={togglingFollow}
-                    variant={following ? "outline" : "default"}
-                  >
-                    <Heart className={`h-4 w-4 mr-2 ${following ? "fill-current" : ""}`} />
-                    {following ? "Following" : "Follow"}
-                  </Button>
-                )}
-                     {/* Back Button - Floating in top-left corner */}
+              <div className="flex flex-wrap gap-2">
                 {isOwner && (
-                <Link href="/business/dashboard">
-                    <Button 
-                    variant="outline" 
-                    className= "bg-background/80 hover:bg-background"
-                    >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Back
+                  <Link href="/business/dashboard">
+                    <Button variant="outline" className="bg-background/80 hover:bg-background">
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Back
                     </Button>
-                </Link>
+                  </Link>
                 )}
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>

@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Package, CheckCircle2, XCircle, Edit, Trash2, CreditCard, ArrowRight } from "lucide-react";
+import { Loader2, Package, CheckCircle2, XCircle, Edit, Trash2, CreditCard, ArrowRight, ShoppingBag, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { CreateProductModal } from "@/components/product/CreateProductModal";
@@ -56,6 +56,8 @@ export default function BusinessProductsPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteType, setDeleteType] = useState<'product' | 'service'>('product');
   const [squareConnected, setSquareConnected] = useState<boolean | null>(null);
+  const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
+  const [stripeSetup, setStripeSetup] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,7 +132,9 @@ export default function BusinessProductsPage() {
         });
         const data = await res.json();
         if (res.ok && data.success && data.data) {
-          setSquareConnected(data.data.squareConnected);
+          setSquareConnected(data.data.squareConnected ?? false);
+          setShopifyConnected(data.data.shopifyConnected ?? false);
+          setStripeSetup(data.data.stripeSetup ?? false);
         }
       } catch {
         // Non-blocking
@@ -349,34 +353,85 @@ export default function BusinessProductsPage() {
 
         {!loading && !error && (
           <>
-            {/* Square Integration - show for first-time users (no products yet) */}
+            {/* Integrations & Settings - show for first-time users (no products yet) */}
             {totalItems === 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Square Integration
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Connect your Square POS to sync inventory automatically when you add products. You can also add products manually below.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {squareConnected ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle2 className="h-5 w-5" />
-                      <span className="text-sm font-medium">Square connected – stock will sync for linked products</span>
-                    </div>
-                  ) : (
-                    <Button asChild variant="default" className="w-full sm:w-auto">
-                      <Link href="/business/square-settings" className="inline-flex items-center">
-                        Connect Square
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5" />
+                        Square Integration
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Connect your Square POS to sync inventory when you add products.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {squareConnected ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <span className="text-sm font-medium">Square connected</span>
+                        </div>
+                      ) : (
+                        <Button asChild variant="default" size="sm" className="w-full sm:w-auto">
+                          <Link href="/business/square-settings" className="inline-flex items-center">
+                            Connect Square
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ShoppingBag className="h-5 w-5" />
+                        Shopify Integration
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Connect your Shopify store to sync products and stock with Localito.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {shopifyConnected ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <span className="text-sm font-medium">Shopify connected</span>
+                        </div>
+                      ) : (
+                        <Button asChild variant="default" size="sm" className="w-full sm:w-auto">
+                          <Link href="/business/shopify-settings" className="inline-flex items-center">
+                            Connect Shopify
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+                {!stripeSetup && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Settings className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Set up payouts (Stripe)</p>
+                            <p className="text-xs text-muted-foreground">Complete Stripe in Settings to receive payments</p>
+                          </div>
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="shrink-0">
+                          <Link href="/business/settings" className="inline-flex items-center">
+                            Open Settings
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
 
             {totalItems === 0 ? (

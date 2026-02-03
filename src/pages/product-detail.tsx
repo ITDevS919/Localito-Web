@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Star, StarHalf } from "lucide-react";
+import { Loader2, Star, StarHalf, Store, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
@@ -18,7 +18,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { MessageCircle } from "lucide-react";
 import { startChatWithBusiness } from "@/utils/chatHelpers";
-import { useLocation } from "wouter";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -35,6 +34,10 @@ interface Product {
   isApproved: boolean;
   reviewCount?: number;
   averageRating?: number;
+  business_name?: string;
+  business_username?: string;
+  city?: string;
+  postcode?: string;
 }
 
 interface Review {
@@ -63,6 +66,17 @@ export default function ProductDetailPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const businessSlug = product?.business_username || product?.businessId || product?.retailerId;
+  const handleFollowShop = () => {
+    if (!businessSlug) return;
+    if (!isAuthenticated || user?.role !== "customer") {
+      toast({ title: "Log in to follow", description: "Log in to follow this shop." });
+      setLocation(`/login?redirect=${encodeURIComponent(`/business/${businessSlug}`)}`);
+    } else {
+      setLocation(`/business/${businessSlug}`);
+    }
+  };
 
   useEffect(() => {
     if (!productId) return;
@@ -154,10 +168,18 @@ export default function ProductDetailPage() {
   };
 
   const handleMessageSeller = async () => {
-    if (!isAuthenticated || !user || user.role !== "customer") {
+    if (!isAuthenticated) {
       toast({
-        title: "Login required",
-        description: "Please login as a customer to message the seller",
+        title: "Log in to message",
+        description: "Please log in to send a message to the seller.",
+      });
+      setLocation(`/login/customer?redirect=/product/${productId}`);
+      return;
+    }
+    if (!user || user.role !== "customer") {
+      toast({
+        title: "Customers only",
+        description: "Only customers can message sellers.",
         variant: "destructive",
       });
       return;
@@ -254,7 +276,7 @@ export default function ProductDetailPage() {
                 Stock: {product.stock > 0 ? product.stock : "Out of stock"}
               </p>
               <div className="flex gap-2">
-                <Button onClick={handleMessageSeller} disabled={!isAuthenticated || user?.role !== "customer"}>
+                <Button onClick={handleMessageSeller}>
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Seller
                 </Button>
@@ -263,10 +285,44 @@ export default function ProductDetailPage() {
                 </Link>
               </div>
               <div className="pt-4">
-                <h3 className="font-semibold mb-2">Seller info</h3>
-                <p className="text-sm text-muted-foreground">
-                  Business ID: {product.businessId || product.retailerId} (approval required for full profile)
-                </p>
+                <h3 className="font-semibold mb-2">Sold by</h3>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Store className="h-10 w-10 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <Link
+                            href={`/business/${product.business_username || product.businessId || product.retailerId}`}
+                            className="font-semibold text-primary hover:underline focus:underline"
+                          >
+                            {product.business_name || "Business"}
+                          </Link>
+                          {product.business_username && (
+                            <p className="text-sm text-muted-foreground">@{product.business_username}</p>
+                          )}
+                          {(product.city || product.postcode) && (
+                            <p className="text-sm text-muted-foreground">
+                              {[product.city, product.postcode].filter(Boolean).join(", ")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/business/${businessSlug}`}>
+                          <Button variant="outline">
+                            <Store className="h-4 w-4 mr-2" />
+                            View Shop
+                          </Button>
+                        </Link>
+                        <Button variant="outline" onClick={handleFollowShop}>
+                          <Heart className="h-4 w-4 mr-2" />
+                          Follow shop
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

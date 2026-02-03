@@ -108,7 +108,7 @@ export default function ServiceDetailPage() {
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      setLocation("/login/customer");
+      setLocation(`/login/customer?redirect=/service/${serviceId}`);
       return;
     }
     setAdding(true);
@@ -129,7 +129,7 @@ export default function ServiceDetailPage() {
       });
     } catch (err: any) {
       if (err?.message?.toLowerCase().includes("401")) {
-        setLocation("/login/customer");
+        setLocation(`/login/customer?redirect=/service/${serviceId}`);
       } else {
         toast({
           title: "Could not add to cart",
@@ -143,10 +143,18 @@ export default function ServiceDetailPage() {
   };
 
   const handleMessageSeller = async () => {
-    if (!isAuthenticated || !user || user.role !== "customer") {
+    if (!isAuthenticated) {
       toast({
-        title: "Login required",
-        description: "Please login as a customer to message the seller",
+        title: "Log in to message",
+        description: "Please log in to send a message to the seller.",
+      });
+      setLocation(`/login/customer?redirect=/service/${serviceId}`);
+      return;
+    }
+    if (!user || user.role !== "customer") {
+      toast({
+        title: "Customers only",
+        description: "Only customers can message sellers.",
         variant: "destructive",
       });
       return;
@@ -359,7 +367,7 @@ export default function ServiceDetailPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleAddToCart} disabled={adding || !isAuthenticated}>
+                <Button onClick={handleAddToCart} disabled={adding}>
                   {adding ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -372,7 +380,7 @@ export default function ServiceDetailPage() {
                     </>
                   )}
                 </Button>
-                <Button onClick={handleMessageSeller} variant="outline" disabled={!isAuthenticated || user?.role !== "customer"}>
+                <Button onClick={handleMessageSeller} variant="outline">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Seller
                 </Button>

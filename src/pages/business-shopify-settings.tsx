@@ -27,6 +27,7 @@ export default function BusinessShopifySettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [shopInput, setShopInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [redirectUriHint, setRedirectUriHint] = useState<string | null>(null);
 
   useEffect(() => {
     loadShopifyStatus();
@@ -37,6 +38,7 @@ export default function BusinessShopifySettingsPage() {
     const params = new URLSearchParams(window.location.search);
     const connected = params.get("connected");
     const err = params.get("error");
+    const errorDetail = params.get("error_detail");
     if (connected === "1") {
       toast({
         title: "Shopify connected",
@@ -46,15 +48,32 @@ export default function BusinessShopifySettingsPage() {
       loadShopifyStatus();
     }
     if (err) {
-      const msg =
-        err === "missing_params"
-          ? "Missing shop or code. Try connecting again."
-          : err === "invalid_state"
-            ? "Session expired. Please try connecting again."
-            : err === "oauth_failed"
-              ? "Authorization failed. Check your store URL and try again."
-              : "Something went wrong. Try again.";
+      const messages: Record<string, string> = {
+        missing_params: "Missing shop or code. Try connecting again.",
+        invalid_state: "Session expired. Please try connecting again.",
+        oauth_failed: "Authorization failed. Check your store URL and try again.",
+        business_only: "Only business accounts can connect a Shopify store.",
+        missing_shop: "Please enter your Shopify store domain.",
+        no_business: "Business profile not found. Complete your business profile first.",
+        auth_failed: "Could not start Shopify connection. Try again.",
+        redirect_uri_mismatch:
+          "Your Shopify app redirect URL does not match. Add the exact redirect URL below in your Shopify app settings.",
+        invalid_credentials:
+          "Shopify API credentials are invalid. Check SHOPIFY_API_KEY and SHOPIFY_API_SECRET.",
+        token_exchange_failed: errorDetail
+          ? `Shopify returned an error: ${errorDetail}`
+          : "Shopify could not complete authorization. Try again.",
+      };
+      const msg = messages[err] || "Something went wrong. Try again.";
       setError(msg);
+      if (err === "redirect_uri_mismatch") {
+        fetch(`${API_BASE_URL}/shopify/redirect-uri`)
+          .then((r) => r.json())
+          .then((d) => d.redirectUri && setRedirectUriHint(d.redirectUri))
+          .catch(() => {});
+      } else {
+        setRedirectUriHint(null);
+      }
       toast({ title: "Connection failed", description: msg, variant: "destructive" });
       window.history.replaceState({}, "", "/business/shopify-settings");
     }
@@ -184,7 +203,15 @@ export default function BusinessShopifySettingsPage() {
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              <span>{error}</span>
+              {redirectUriHint && (
+                <div className="mt-3 rounded bg-black/10 p-3 font-mono text-xs break-all">
+                  <p className="mb-1 font-semibold text-foreground">Add this URL in Shopify Partner Dashboard → App → URL configuration:</p>
+                  {redirectUriHint}
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -265,52 +292,56 @@ export default function BusinessShopifySettingsPage() {
         {!status?.connected && (
           <Card>
             <CardHeader>
-              <CardTitle>Connect Shopify store</CardTitle>
+              <CardTitle>Sign in with Shopify</CardTitle>
               <CardDescription>
-                Enter your Shopify store domain. You’ll be sent to Shopify to authorize Localito.
+                Connect your store to sync products. Shopify requires your <strong>store name</strong> (e.g. mystore) to start — even if you use a custom domain like mystore.com, use your myshopify.com name here.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="shop">Store domain</Label>
-                <Input
-                  id="shop"
-                  type="text"
-                  placeholder="mystore.myshopify.com"
-                  value={shopInput}
-                  onChange={(e) => setShopInput(e.target.value)}
-                />
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                  <div className="flex-1 space-y-1.5">
+                    <Label htmlFor="shop" className="text-xs text-muted-foreground">Store name (required by Shopify)</Label>
+                    <Input
+                      id="shop"
+                      type="text"
+                      placeholder="e.g. mystore"
+                      value={shopInput}
+                      onChange={(e) => setShopInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && shopInput.trim() && handleConnect()}
+                      className="h-11"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleConnect}
+                    disabled={!shopInput.trim()}
+                    className="w-full sm:w-auto h-11 px-6 shrink-0"
+                  >
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Sign in with Shopify
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Your store’s myshopify.com domain (e.g. mystore.myshopify.com)
+                  Have your own domain? Shopify OAuth only works with your <code className="bg-muted px-1 py-0.5 rounded">*.myshopify.com</code> admin domain.
                 </p>
+                <details className="text-xs text-muted-foreground border rounded-lg p-3 bg-muted/30">
+                  <summary className="cursor-pointer font-medium text-foreground">Don't know your store name? How to find it</summary>
+                  <ol className="mt-2 ml-4 space-y-1 list-decimal">
+                    <li>Open your Shopify admin in your browser (where you manage products and orders).</li>
+                    <li>Look at the address bar. You'll see one of these:
+                      <ul className="mt-1 ml-4 list-disc">
+                        <li><code className="bg-muted px-1 rounded">admin.shopify.com/store/<strong>your-store-name</strong></code> → enter <strong>your-store-name</strong></li>
+                        <li><code className="bg-muted px-1 rounded">your-store-name.myshopify.com/admin</code> → enter <strong>your-store-name</strong> or <strong>your-store-name.myshopify.com</strong></li>
+                      </ul>
+                    </li>
+                    <li>Use that store name in the field above, then click Sign in with Shopify.</li>
+                  </ol>
+                </details>
               </div>
-              <Button onClick={handleConnect} disabled={!shopInput.trim()} className="w-full">
-                <Link2 className="mr-2 h-4 w-4" />
-                Connect with Shopify
-              </Button>
             </CardContent>
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>How it works</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <strong>OAuth:</strong> You’ll be redirected to Shopify to approve access. No need to
-              copy API keys.
-            </p>
-            <p>
-              <strong>Product sync:</strong> After connecting, you can link Localito products to
-              Shopify products (and optionally sync stock) from the product edit screen.
-            </p>
-            <p>
-              <strong>Same as Square:</strong> Like Square, you can choose which products sync from
-              Shopify and which use manual stock.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );

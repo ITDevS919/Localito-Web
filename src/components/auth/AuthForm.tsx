@@ -13,9 +13,10 @@ interface AuthFormProps {
   variant: AuthVariant;
   role: Exclude<UserRole, "admin">; // admin won't self-signup here
   onSuccess?: () => void;
+  redirect?: string; // Optional redirect path after login
 }
 
-export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
+export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) {
   const { login, signup } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -74,7 +75,7 @@ export function AuthForm({ variant, role, onSuccess }: AuthFormProps) {
     setLoading(true);
     try {
       if (variant === "login") {
-        await login(username, password);
+        await login(username, password, redirect ? { redirect } : undefined);
       } else {
         // Include business data if signing up as business
         const businessData = role === "business" ? {

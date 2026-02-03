@@ -42,7 +42,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      setLocation("/login/customer");
+      setLocation(`/login/customer?redirect=/service/${service.id}`);
       return;
     }
     setAdding(true);
@@ -63,7 +63,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
       });
     } catch (err: any) {
       if (err?.message?.toLowerCase().includes("401")) {
-        setLocation("/login/customer");
+        setLocation(`/login/customer?redirect=/service/${service.id}`);
       } else {
         toast({
           title: "Could not add to cart",

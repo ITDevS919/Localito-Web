@@ -13,32 +13,52 @@ import { useLocation } from "wouter";
 import { motion, useInView } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-// Animated counter component
+// Animated counter component – permissive margin so stats trigger on mobile (no -100px shrink)
 function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
   const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const startedRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "0px", amount: 0.1 });
+
+  const runAnimation = () => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    const duration = 2000;
+    const steps = 60;
+    const increment = value / steps;
+    let current = 0;
+    intervalRef.current = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+  };
 
   useEffect(() => {
-    if (isInView) {
-      const duration = 2000;
-      const steps = 60;
-      const increment = value / steps;
-      let current = 0;
-      
-      const timer = setInterval(() => {
-        current += increment;
-        if (current >= value) {
-          setCount(value);
-          clearInterval(timer);
-        } else {
-          setCount(Math.floor(current));
-        }
-      }, duration / steps);
-
-      return () => clearInterval(timer);
-    }
+    if (isInView) runAnimation();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isInView, value]);
+
+  // Mobile fallback: IntersectionObserver can miss on some mobile browsers; run after short delay if in viewport
+  useEffect(() => {
+    const fallback = setTimeout(() => {
+      if (startedRef.current || count > 0) return;
+      if (typeof window === "undefined" || !ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const inViewport = rect.top < vh && rect.bottom > 0;
+      if (inViewport) runAnimation();
+    }, 500);
+    return () => clearTimeout(fallback);
+  }, [value, count]);
 
   return <span ref={ref}>{count}{suffix}</span>;
 }
@@ -46,7 +66,7 @@ function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string
 // CTA Section Component
 function CTASection() {
   const sectionRef = useRef(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const isInView = useInView(sectionRef, { once: true, margin: "0px", amount: 0.1 });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -113,7 +133,7 @@ function CTASection() {
 // Progress Section Component
 function ProgressSection() {
   const sectionRef = useRef(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const isInView = useInView(sectionRef, { once: true, margin: "0px", amount: 0.1 });
 
   const containerVariants = {
     hidden: { opacity: 0 },

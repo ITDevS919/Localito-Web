@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,19 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [, setLocation] = useLocation();
 
+  const redirect = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get("redirect");
+    return r && r.startsWith("/") ? r : undefined;
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await login(username, password);
+      await login(username, password, redirect ? { redirect } : undefined);
     } catch (err: any) {
       setError(err.message || "Login failed. Please try again.");
     } finally {

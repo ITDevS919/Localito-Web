@@ -67,7 +67,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      setLocation("/login/customer");
+      setLocation(`/login/customer?redirect=/product/${product.id}`);
       return;
     }
     setAdding(true);
@@ -88,7 +88,7 @@ export function ProductCard({ product }: ProductCardProps) {
       });
     } catch (err: any) {
       if (err?.message?.toLowerCase().includes("401")) {
-        setLocation("/login/customer");
+        setLocation(`/login/customer?redirect=/product/${product.id}`);
       } else {
         toast({
           title: "Could not add to cart",
@@ -106,7 +106,7 @@ export function ProductCard({ product }: ProductCardProps) {
     e.stopPropagation();
     
     if (!isAuthenticated) {
-      setLocation("/login/customer");
+      setLocation(`/login/customer?redirect=/product/${product.id}`);
       return;
     }
 
