@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Calendar, Clock, MapPin, MessageCircle, Star, StarHalf } from "lucide-react";
+import { Loader2, Calendar, Clock, MapPin, MessageCircle, Star, StarHalf, Navigation } from "lucide-react";
+import { buildAddressString, getGoogleMapsDirectionsUrl } from "@/lib/maps";
 import { useAuth } from "@/contexts/AuthContext";
 import { startChatWithBusiness } from "@/utils/chatHelpers";
 import { useLocation } from "wouter";
@@ -36,6 +37,11 @@ interface Service {
   retailer_id?: string; // Legacy support
   business_name?: string; // Formerly retailer_name
   retailer_name?: string; // Legacy support
+  business_address?: string | null;
+  city?: string | null;
+  postcode?: string | null;
+  business_latitude?: number | null;
+  business_longitude?: number | null;
   reviewCount?: number;
   averageRating?: number;
 }
@@ -393,6 +399,25 @@ export default function ServiceDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   {service.business_name || service.retailer_name || `Business ID: ${service.business_id || service.retailer_id}`}
                 </p>
+                {(service.business_address || service.city || service.postcode) && (
+                  <a
+                    href={getGoogleMapsDirectionsUrl(
+                      buildAddressString({
+                        business_address: service.business_address,
+                        city: service.city,
+                        postcode: service.postcode,
+                      }),
+                      service.business_latitude,
+                      service.business_longitude
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    Get directions to business
+                  </a>
+                )}
               </div>
             </div>
           </div>

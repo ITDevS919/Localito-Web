@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Store, MapPin, Phone, Heart, Share2, Image as ImageIcon, ArrowLeft, ChevronLeft } from "lucide-react";
+import { BusinessLocationMap } from "@/components/location/BusinessLocationMap";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/lib/product";
@@ -23,6 +24,8 @@ interface BusinessProfile {
   postcode?: string;
   city?: string;
   phone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   banner_image?: string;
   follower_count: number;
   isFollowing?: boolean;
@@ -366,17 +369,17 @@ export default function BusinessProfilePage() {
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {(business.business_address || business.city || business.postcode) && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        [business.business_address, business.city, business.postcode].filter(Boolean).join(", ")
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 hover:text-primary hover:underline focus:underline"
-                    >
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      {business.business_address || [business.city, business.postcode].filter(Boolean).join(", ")}
-                    </a>
+                    <div className="w-full">
+                      <BusinessLocationMap
+                        business_address={business.business_address}
+                        city={business.city}
+                        postcode={business.postcode}
+                        latitude={business.latitude}
+                        longitude={business.longitude}
+                        businessName={business.business_name}
+                        showEmbed={true}
+                      />
+                    </div>
                   )}
                   {business.phone && (
                     <a
