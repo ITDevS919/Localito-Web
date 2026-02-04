@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, Users, LogOut, Shield, Tag, MessageCircle, ShoppingBag, FolderTree, Star, Settings, CreditCard } from "lucide-react";
+import { LayoutDashboard, Package, Users, UserCircle, LogOut, Shield, Tag, MessageCircle, ShoppingBag, FolderTree, Star, Settings, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ASSETS } from "@/lib/product";
@@ -20,6 +20,7 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/businesses", label: "Businesses", icon: Users },
+    { href: "/admin/customers", label: "Customers", icon: UserCircle },
     { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
     { href: "/admin/categories", label: "Categories", icon: FolderTree },
     { href: "/admin/reviews", label: "Reviews", icon: Star },
@@ -33,6 +34,7 @@ export function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
   const getPageTitle = () => {
     if (location === "/admin/products") return "Product Approvals";
     if (location === "/admin/businesses") return "Business Approvals";
+    if (location === "/admin/customers") return "Customers";
     if (location === "/admin/orders") return "Order Management";
     if (location === "/admin/categories") return "Category Management";
     if (location === "/admin/reviews") return "Review Moderation";

@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Search, Menu, User, LogOut, Coins, MessageCircle } from "lucide-react";
+import { Search, Menu, User, LogOut, Coins, MessageCircle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ASSETS } from "@/lib/product";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,6 +83,11 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
+          <Link href="/cart" className="hidden md:block">
+            <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full" aria-label="Cart">
+              <ShoppingCart className="h-5 w-5" />
+            </Button>
+          </Link>
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -190,6 +195,14 @@ export function Navbar() {
                     className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   >
                     Our Story
+                  </Link>
+                  <Link
+                    href="/cart"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Cart
                   </Link>
                 </nav>
                 <div className="border-t border-border pt-4">

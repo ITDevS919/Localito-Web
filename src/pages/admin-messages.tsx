@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Send, Loader2, Plus } from "lucide-react";
+import { MessageCircle, Send, Loader2, Plus, Users, Eye } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { initializeFirebaseAuth } from "@/lib/firebase";
@@ -52,6 +52,30 @@ interface Customer {
   role: string;
 }
 
+interface AdminConversationRoom {
+  id: string;
+  participantNames: Record<string, string>;
+  participantRoles: Record<string, string>;
+  appUserIds?: string[];
+  lastMessage?: string;
+  lastMessageTime?: string;
+  type: string;
+  createdAt?: string;
+}
+
+interface AdminMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  receiverId: string;
+  receiverName: string;
+  text: string;
+  timestamp: string;
+  read: boolean;
+  type: string;
+}
+
 export default function AdminMessagesPage() {
   useRequireRole("admin", "/admin");
   const { user } = useAuth();
@@ -71,6 +95,13 @@ export default function AdminMessagesPage() {
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [creatingRoom, setCreatingRoom] = useState(false);
+  const [viewMode, setViewMode] = useState<"mine" | "buyer-seller">("mine");
+  const [buyerSellerRooms, setBuyerSellerRooms] = useState<AdminConversationRoom[]>([]);
+  const [selectedBuyerSellerRoomId, setSelectedBuyerSellerRoomId] = useState<string | null>(null);
+  const [buyerSellerMessages, setBuyerSellerMessages] = useState<AdminMessage[]>([]);
+  const [loadingBuyerSellerRooms, setLoadingBuyerSellerRooms] = useState(false);
+  const [loadingBuyerSellerMessages, setLoadingBuyerSellerMessages] = useState(false);
+  const [buyerSellerError, setBuyerSellerError] = useState<string | null>(null);
 
   // Initialize Firebase auth on mount
   useEffect(() => {
@@ -105,6 +136,39 @@ export default function AdminMessagesPage() {
     if (recipientType === "business" && businesses.length === 0) loadBusinesses();
     if (recipientType === "customer" && customers.length === 0) loadCustomers();
   }, [newConversationOpen, recipientType]);
+
+  // Fetch buyer-seller conversations when admin switches to that view
+  useEffect(() => {
+    if (viewMode !== "buyer-seller") return;
+    setLoadingBuyerSellerRooms(true);
+    setBuyerSellerError(null);
+    fetch(`${API_BASE_URL}/admin/conversations`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setBuyerSellerRooms(data.data || []);
+        else setBuyerSellerError(data.message || "Failed to load conversations");
+      })
+      .catch(() => setBuyerSellerError("Failed to load conversations"))
+      .finally(() => setLoadingBuyerSellerRooms(false));
+  }, [viewMode]);
+
+  // Fetch messages for selected buyer-seller room
+  useEffect(() => {
+    if (viewMode !== "buyer-seller" || !selectedBuyerSellerRoomId) {
+      setBuyerSellerMessages([]);
+      return;
+    }
+    setLoadingBuyerSellerMessages(true);
+    fetch(`${API_BASE_URL}/admin/conversations/${selectedBuyerSellerRoomId}/messages`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setBuyerSellerMessages(data.data || []);
+      })
+      .catch(() => setBuyerSellerMessages([]))
+      .finally(() => setLoadingBuyerSellerMessages(false));
+  }, [viewMode, selectedBuyerSellerRoomId]);
 
   const loadBusinesses = async () => {
     setLoadingBusinesses(true);
@@ -286,20 +350,160 @@ export default function AdminMessagesPage() {
     );
   }
 
+  const selectedBuyerSellerRoom = buyerSellerRooms.find((r) => r.id === selectedBuyerSellerRoomId);
+  const buyerSellerParticipantNames = selectedBuyerSellerRoom
+    ? Object.values(selectedBuyerSellerRoom.participantNames).filter(Boolean).join(" & ")
+    : "";
+
   return (
     <AdminDashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Messages</h1>
-            <p className="text-muted-foreground">Chat with customers and businesses</p>
+            <p className="text-muted-foreground">Chat with customers and businesses, or view buyer-seller conversations</p>
           </div>
-          <Button onClick={() => setNewConversationOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Conversation
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border bg-muted/50 p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("mine")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === "mine" ? "bg-background shadow" : "hover:bg-background/50"
+                }`}
+              >
+                <MessageCircle className="h-4 w-4 inline-block mr-2 align-middle" />
+                My conversations
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("buyer-seller")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === "buyer-seller" ? "bg-background shadow" : "hover:bg-background/50"
+                }`}
+              >
+                <Eye className="h-4 w-4 inline-block mr-2 align-middle" />
+                View buyer-seller
+              </button>
+            </div>
+            {viewMode === "mine" && (
+              <Button onClick={() => setNewConversationOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Conversation
+              </Button>
+            )}
+          </div>
         </div>
 
+        {viewMode === "buyer-seller" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ height: "calc(100vh - 250px)" }}>
+            <Card className="lg:col-span-1 flex flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Buyer-seller conversations
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">Read-only. Configure Firebase Admin to enable.</p>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                {buyerSellerError && (
+                  <div className="p-4 text-sm text-destructive">{buyerSellerError}</div>
+                )}
+                {loadingBuyerSellerRooms ? (
+                  <div className="p-4 flex justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : buyerSellerRooms.length === 0 && !buyerSellerError ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No buyer-seller conversations yet</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-full">
+                    <div className="divide-y">
+                      {buyerSellerRooms.map((room) => {
+                        const names = Object.values(room.participantNames).filter(Boolean).join(" & ") || "Unknown";
+                        return (
+                          <button
+                            key={room.id}
+                            type="button"
+                            onClick={() => setSelectedBuyerSellerRoomId(room.id)}
+                            className={`w-full p-4 text-left hover:bg-secondary/50 transition-colors ${
+                              selectedBuyerSellerRoomId === room.id ? "bg-secondary" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>{names.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{names}</p>
+                                {room.lastMessageTime && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(room.lastMessageTime).toLocaleDateString()}
+                                  </span>
+                                )}
+                                <p className="text-sm text-muted-foreground truncate">{room.lastMessage || "No messages"}</p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="lg:col-span-2 flex flex-col">
+              {selectedBuyerSellerRoomId ? (
+                <>
+                  <CardHeader className="border-b shrink-0">
+                    <CardTitle>{buyerSellerParticipantNames || "Conversation"}</CardTitle>
+                    <p className="text-sm text-muted-foreground">Read-only view of messages between customer and business</p>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col p-0 min-h-0 overflow-auto">
+                    {loadingBuyerSellerMessages ? (
+                      <div className="p-8 flex justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : buyerSellerMessages.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground">No messages in this conversation</div>
+                    ) : (
+                      <div className="p-4 space-y-4">
+                        {buyerSellerMessages.map((msg) => (
+                          <div key={msg.id} className="flex flex-col gap-1">
+                            <div
+                              className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${
+                                msg.senderRole === "admin"
+                                  ? "bg-primary text-primary-foreground rounded-br-sm ml-auto"
+                                  : "bg-secondary text-secondary-foreground rounded-bl-sm"
+                              }`}
+                            >
+                              <p className="text-xs font-medium opacity-80">
+                                {msg.senderName} ({msg.senderRole})
+                              </p>
+                              <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                              <p className="text-xs mt-1 opacity-70">
+                                {new Date(msg.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <Eye className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p>Select a conversation to view messages</p>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ height: 'calc(100vh - 250px)' }}>
           {/* Chat Rooms List */}
           <Card className="lg:col-span-1 flex flex-col">
@@ -470,6 +674,7 @@ export default function AdminMessagesPage() {
             )}
           </Card>
         </div>
+        )}
       </div>
 
       {/* New Conversation Dialog */}

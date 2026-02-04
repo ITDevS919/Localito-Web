@@ -24,6 +24,7 @@ import BusinessAvailabilityPage from "@/pages/business-availability";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminProductsPage from "@/pages/admin-products";
 import AdminBusinessesPage from "@/pages/admin-businesses";
+import AdminCustomersPage from "@/pages/admin-customers";
 import AdminOrdersPage from "@/pages/admin-orders";
 import AdminOrderDetailPage from "@/pages/admin-order-detail";
 import AdminCategoriesPage from "@/pages/admin-categories";
@@ -114,6 +115,7 @@ function Router() {
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/products" component={AdminProductsPage} />
       <Route path="/admin/businesses" component={AdminBusinessesPage} />
+      <Route path="/admin/customers" component={AdminCustomersPage} />
       <Route path="/admin/orders/:id" component={AdminOrderDetailPage} />
       <Route path="/admin/orders" component={AdminOrdersPage} />
       <Route path="/admin/categories" component={AdminCategoriesPage} />
