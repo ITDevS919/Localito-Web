@@ -119,7 +119,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Your Cart</h1>
           <p className="text-muted-foreground">Review your items before checkout.</p>
@@ -134,7 +134,7 @@ export default function CartPage() {
 
         {!loading && !error && (
           <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-4 order-2 lg:order-1">
               {items.length === 0 && serviceItems.length === 0 ? (
                 <div className="rounded-xl border border-border p-6 text-center text-muted-foreground">
                   Cart is empty.
@@ -145,58 +145,60 @@ export default function CartPage() {
                   {items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex gap-4 rounded-xl border border-border p-4 items-center"
+                    className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border p-4"
                   >
                     <img
                       src={item.images?.[0] || "/opengraph.jpg"}
                       alt={item.name}
-                      className="h-20 w-20 rounded-lg object-cover"
+                      className="h-20 w-20 rounded-lg object-cover flex-shrink-0"
                     />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="font-semibold">{item.name}</div>
                       <div className="text-sm text-muted-foreground">{item.business_name || item.retailer_name}</div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-sm text-muted-foreground">Quantity:</span>
-                        <div className="flex items-center gap-1 border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleQuantityUpdate(item.product_id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min="1"
-                            max={item.stock}
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value) || 1;
-                              if (val >= 1 && val <= item.stock) {
-                                handleQuantityUpdate(item.product_id, val);
-                              }
-                            }}
-                            className="w-16 h-8 text-center border-0 focus-visible:ring-0"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleQuantityUpdate(item.product_id, item.quantity + 1)}
-                            disabled={item.quantity >= item.stock}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Quantity:</span>
+                          <div className="flex items-center gap-1 border rounded-md">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleQuantityUpdate(item.product_id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <Input
+                              type="number"
+                              min="1"
+                              max={item.stock}
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 1;
+                                if (val >= 1 && val <= item.stock) {
+                                  handleQuantityUpdate(item.product_id, val);
+                                }
+                              }}
+                              className="w-16 h-8 text-center border-0 focus-visible:ring-0"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleQuantityUpdate(item.product_id, item.quantity + 1)}
+                              disabled={item.quantity >= item.stock}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            (Stock: {item.stock})
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          (Stock: {item.stock})
-                        </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold">£{(item.price * item.quantity).toFixed(2)}</div>
+                    <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-start gap-2">
+                      <div className="font-semibold text-lg">£{(item.price * item.quantity).toFixed(2)}</div>
                       <Button variant="ghost" size="sm" onClick={() => handleRemove(item.product_id)}>
                         Remove
                       </Button>
@@ -208,15 +210,15 @@ export default function CartPage() {
                   {serviceItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex gap-4 rounded-xl border border-border p-4 items-center"
+                      className="flex flex-col sm:flex-row gap-4 rounded-xl border border-border p-4"
                     >
                       <img
                         src={item.images?.[0] || "/opengraph.jpg"}
                         alt={item.name}
-                        className="h-20 w-20 rounded-lg object-cover"
+                        className="h-20 w-20 rounded-lg object-cover flex-shrink-0"
                       />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <div className="font-semibold">{item.name}</div>
                           <Badge variant="secondary" className="text-xs">
                             <Calendar className="h-3 w-3 mr-1" />
@@ -231,8 +233,8 @@ export default function CartPage() {
                           Booking time will be selected at checkout
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold">£{(item.price * item.quantity).toFixed(2)}</div>
+                      <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-start gap-2">
+                        <div className="font-semibold text-lg">£{(item.price * item.quantity).toFixed(2)}</div>
                         <Button variant="ghost" size="sm" onClick={() => handleRemoveService(item.service_id)}>
                           Remove
                         </Button>
@@ -243,7 +245,7 @@ export default function CartPage() {
               )}
             </div>
 
-            <div className="rounded-xl border border-border p-6 space-y-4">
+            <div className="rounded-xl border border-border p-6 space-y-4 order-1 lg:order-2">
               <h2 className="text-xl font-semibold">Order Summary</h2>
               {items.length > 0 && (
                 <div className="flex justify-between text-sm text-muted-foreground">

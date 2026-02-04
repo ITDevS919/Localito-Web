@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Store, MapPin, Phone, Heart, Share2, Image as ImageIcon, ArrowLeft, ChevronLeft } from "lucide-react";
-import { BusinessLocationMap } from "@/components/location/BusinessLocationMap";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/lib/product";
@@ -24,8 +23,6 @@ interface BusinessProfile {
   postcode?: string;
   city?: string;
   phone?: string;
-  latitude?: number | null;
-  longitude?: number | null;
   banner_image?: string;
   follower_count: number;
   isFollowing?: boolean;
@@ -63,7 +60,48 @@ export default function BusinessProfilePage() {
 
   const fetchBusinessProfile = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/business/${businessId}/public`, {
+      // If user is admin, try admin endpoint first for unapproved businesses
+      let res;
+      if (isAuthenticated && user?.role === "admin") {
+        try {
+          res = await fetch(`${API_BASE_URL}/admin/businesses/${businessId}`, {
+            credentials: "include",
+          });
+          const adminData = await res.json();
+          if (res.ok && adminData.success) {
+            // Transform admin business data to match BusinessProfile interface
+            const biz = {
+              id: adminData.data.id,
+              business_name: adminData.data.business_name,
+              username: adminData.data.username,
+              primary_category_name: null,
+              business_address: adminData.data.business_address,
+              postcode: adminData.data.postcode,
+              city: adminData.data.city,
+              phone: adminData.data.phone,
+              banner_image: undefined,
+              follower_count: 0,
+              isFollowing: false,
+              is_approved: adminData.data.is_approved,
+              is_suspended: adminData.data.is_suspended,
+            };
+            setBusiness(biz);
+            setFollowing(false);
+            fetchPosts(biz.id);
+            fetchProducts(biz.id);
+            if (biz.username && businessId && isUuid(businessId)) {
+              window.history.replaceState(null, "", `/business/${biz.username}`);
+            }
+            return;
+          }
+        } catch (adminErr) {
+          // Fall through to public endpoint
+          console.log("Admin endpoint failed, trying public endpoint");
+        }
+      }
+      
+      // Try public endpoint
+      res = await fetch(`${API_BASE_URL}/business/${businessId}/public`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -80,6 +118,33 @@ export default function BusinessProfilePage() {
           const profileRes = await fetch(`${API_BASE_URL}/business/profile`, { credentials: "include" });
           const profileData = await profileRes.json();
           if (profileRes.ok && profileData.success) setIsOwner(profileData.data.id === biz.id);
+        }
+      } else if (!res.ok && isAuthenticated && user?.role === "admin") {
+        // If public endpoint fails and user is admin, try admin endpoint as fallback
+        const adminRes = await fetch(`${API_BASE_URL}/admin/businesses/${businessId}`, {
+          credentials: "include",
+        });
+        const adminData = await adminRes.json();
+        if (adminRes.ok && adminData.success) {
+          const biz = {
+            id: adminData.data.id,
+            business_name: adminData.data.business_name,
+            username: adminData.data.username,
+            primary_category_name: null,
+            business_address: adminData.data.business_address,
+            postcode: adminData.data.postcode,
+            city: adminData.data.city,
+            phone: adminData.data.phone,
+            banner_image: undefined,
+            follower_count: 0,
+            isFollowing: false,
+            is_approved: adminData.data.is_approved,
+            is_suspended: adminData.data.is_suspended,
+          };
+          setBusiness(biz);
+          setFollowing(false);
+          fetchPosts(biz.id);
+          fetchProducts(biz.id);
         }
       }
     } catch (err) {
@@ -301,17 +366,17 @@ export default function BusinessProfilePage() {
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {(business.business_address || business.city || business.postcode) && (
-                    <div className="w-full">
-                      <BusinessLocationMap
-                        business_address={business.business_address}
-                        city={business.city}
-                        postcode={business.postcode}
-                        latitude={business.latitude}
-                        longitude={business.longitude}
-                        businessName={business.business_name}
-                        showEmbed={true}
-                      />
-                    </div>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        [business.business_address, business.city, business.postcode].filter(Boolean).join(", ")
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-primary hover:underline focus:underline"
+                    >
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      {business.business_address || [business.city, business.postcode].filter(Boolean).join(", ")}
+                    </a>
                   )}
                   {business.phone && (
                     <a

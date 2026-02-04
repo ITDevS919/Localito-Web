@@ -470,7 +470,11 @@ export default function AdminBusinessesPage() {
                         <div className="grid grid-cols-3 gap-2">
                           <Button
                             variant="outline"
-                            onClick={() => window.open(`/business/${business.username || business.id}`, '_blank')}
+                            onClick={() => {
+                              // Use username if available and not empty, otherwise use ID
+                              const businessSlug = (business.username && business.username.trim()) ? business.username : business.id;
+                              window.open(`/business/${businessSlug}`, '_blank');
+                            }}
                           >
                             <Store className="mr-2 h-4 w-4" />
                             Profile

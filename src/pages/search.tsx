@@ -31,9 +31,14 @@ interface Category {
 export default function SearchPage() {
   const [location, setLocation] = useLocation();
   
+  // Track URL changes to force re-extraction of params
+  const [urlKey, setUrlKey] = useState(0);
+  
   // Extract URL params using useMemo to prevent recreation
-  // Get query string from window.location to ensure we get the full URL
+  // Check both wouter location and window.location for maximum reactivity
   const { query, locationQuery, tab } = useMemo(() => {
+    // Always use window.location.search as the source of truth for query params
+    // This ensures we get the latest URL params even if wouter's location hasn't updated yet
     const searchParams = new URLSearchParams(window.location.search);
     const tabParam = searchParams.get("tab") || "";
     const extracted = {
@@ -42,7 +47,7 @@ export default function SearchPage() {
       tab: tabParam === "products" || tabParam === "services" ? tabParam : "all",
     };
     return extracted;
-  }, [location]);
+  }, [location, urlKey]);
   
   // Filter states
   const [searchInput, setSearchInput] = useState(query);
@@ -292,21 +297,36 @@ export default function SearchPage() {
   };
 
   // Build search URL from current state
-  const buildSearchUrl = (overrides?: { q?: string; loc?: string; categories?: string[] }) => {
+  const buildSearchUrl = (overrides?: { q?: string; loc?: string; categories?: string[]; tab?: string }) => {
     const params = new URLSearchParams();
     const q = overrides?.q !== undefined ? overrides.q : searchInput.trim();
     const loc = overrides?.loc !== undefined ? overrides.loc : filterLocation.trim();
     const cats = overrides?.categories ?? selectedCategories;
+    const tabValue = overrides?.tab !== undefined ? overrides.tab : (tab !== "all" ? tab : undefined);
     if (q) params.append("q", q);
     if (loc) params.append("loc", loc);
     if (cats.length > 0) params.append("categories", cats.join(","));
+    if (tabValue && tabValue !== "all") params.append("tab", tabValue);
     const queryString = params.toString();
     return `/search${queryString ? `?${queryString}` : ""}`;
   };
 
   const handleMarketplaceSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setLocation(buildSearchUrl());
+    // Build URL with current input values
+    const newQuery = searchInput.trim();
+    const newLocation = filterLocation.trim();
+    const newUrl = buildSearchUrl({ 
+      q: newQuery, 
+      loc: newLocation,
+      tab: tab !== "all" ? tab : undefined
+    });
+    
+    // Update location - wouter will update the browser URL
+    setLocation(newUrl);
+    // Force re-extraction of URL params by updating urlKey
+    // This ensures the useMemo re-runs even if location hasn't updated yet
+    setUrlKey(prev => prev + 1);
   };
 
   // Quick filter pills: apply sort or price in one click

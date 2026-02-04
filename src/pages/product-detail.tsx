@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Star, StarHalf, Store, Heart, MapPin, Navigation } from "lucide-react";
-import { getGoogleMapsDirectionsUrl, buildAddressString } from "@/lib/maps";
+import { Loader2, Star, StarHalf, Store, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
@@ -37,11 +36,8 @@ interface Product {
   averageRating?: number;
   business_name?: string;
   business_username?: string;
-  business_address?: string | null;
   city?: string;
   postcode?: string;
-  business_latitude?: number | null;
-  business_longitude?: number | null;
 }
 
 interface Review {
@@ -228,7 +224,7 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
         {loading && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -305,33 +301,10 @@ export default function ProductDetailPage() {
                           {product.business_username && (
                             <p className="text-sm text-muted-foreground">@{product.business_username}</p>
                           )}
-                          {(product.city || product.postcode || product.business_address) && (
+                          {(product.city || product.postcode) && (
                             <p className="text-sm text-muted-foreground">
-                              {buildAddressString({
-                                business_address: product.business_address,
-                                city: product.city,
-                                postcode: product.postcode,
-                              }) || [product.city, product.postcode].filter(Boolean).join(", ")}
+                              {[product.city, product.postcode].filter(Boolean).join(", ")}
                             </p>
-                          )}
-                          {(product.business_address || product.city || product.postcode) && (
-                            <a
-                              href={getGoogleMapsDirectionsUrl(
-                                buildAddressString({
-                                  business_address: product.business_address,
-                                  city: product.city,
-                                  postcode: product.postcode,
-                                }),
-                                product.business_latitude,
-                                product.business_longitude
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-1"
-                            >
-                              <Navigation className="h-4 w-4" />
-                              Get directions
-                            </a>
                           )}
                         </div>
                       </div>

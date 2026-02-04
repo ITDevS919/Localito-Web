@@ -453,7 +453,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Checkout</h1>
           <p className="text-muted-foreground">Review your order and complete your purchase.</p>

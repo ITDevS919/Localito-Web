@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Search, Menu, User, LogOut, Coins, MessageCircle, ShoppingCart } from "lucide-react";
+import { Search, Menu, User, LogOut, Coins, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ASSETS } from "@/lib/product";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,12 +59,12 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl">
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-full px-6 py-3 flex items-center justify-between shadow-xl">
+    <nav className="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl">
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-full px-4 md:px-6 py-2.5 md:py-3 flex items-center justify-between shadow-xl">
         {/* Logo & Nav Links */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center">
-            <img src={ASSETS.logo} alt="Localito" className="h-8 w-auto object-contain" />
+        <div className="flex items-center gap-4 md:gap-8 min-w-0">
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <img src={ASSETS.logo} alt="Localito" className="h-6 md:h-8 w-auto object-contain" />
           </Link>
           
           {/* Desktop Navigation */}
@@ -83,11 +83,6 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <Link href="/cart" className="hidden md:block">
-            <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full" aria-label="Cart">
-              <ShoppingCart className="h-5 w-5" />
-            </Button>
-          </Link>
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -195,14 +190,6 @@ export function Navbar() {
                     className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   >
                     Our Story
-                  </Link>
-                  <Link
-                    href="/cart"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    Cart
                   </Link>
                 </nav>
                 <div className="border-t border-border pt-4">
