@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useLocation } from "wouter";
+import { setAuthContextHandlers } from "@/utils/fetchWithAuth";
 
 export type UserRole = "customer" | "business" | "admin";
 
@@ -26,7 +27,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string, options?: { redirect?: string }) => Promise<void>;
-  signup: (username: string, email: string, password: string, role: UserRole, businessData?: BusinessData) => Promise<void>;
+  signup: (
+    username: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    businessData?: BusinessData,
+    options?: { redirect?: string }
+  ) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isCustomer: boolean;
@@ -49,6 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // Set up periodic auth check and focus listener (separate effect to avoid dependency issues)
+  useEffect(() => {
+    if (!user) return; // Only set up if user is logged in
+
+    // Set up periodic auth check (every 5 minutes) to catch expired sessions
+    const authCheckInterval = setInterval(() => {
+      checkAuth();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Re-check auth when window regains focus (catches session expiration)
+    const handleFocus = () => {
+      checkAuth();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(authCheckInterval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user]); // Only re-run when user state changes
+
   const checkAuth = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -59,10 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         if (data.success && data.data) {
           setUser(data.data);
+        } else {
+          // No user data returned - clear state
+          setUser(null);
         }
+      } else if (response.status === 401) {
+        // Session expired or invalid - clear user state
+        setUser(null);
+      } else {
+        // Other error - clear user state to be safe
+        setUser(null);
       }
     } catch (error) {
       console.error("Auth check failed:", error);
+      // Network error - don't clear user state (might be temporary)
+      // Only clear if it's a clear auth error
     } finally {
       setLoading(false);
     }
@@ -99,7 +139,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (username: string, email: string, password: string, role: UserRole = "customer", businessData?: BusinessData) => {
+  const signup = async (
+    username: string,
+    email: string,
+    password: string,
+    role: UserRole = "customer",
+    businessData?: BusinessData,
+    options?: { redirect?: string }
+  ) => {
     const body: any = { username, email, password, role };
     if (role === "business" && businessData) {
       body.businessData = businessData;
@@ -121,9 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(data.data);
-    
-    // Redirect based on role
-    if (data.data.role === "business") {
+
+    const redirectPath = options?.redirect?.startsWith("/") ? options.redirect : null;
+
+    if (redirectPath) {
+      setLocation(redirectPath);
+    } else if (data.data.role === "business") {
       // New business signups go to onboarding wizard
       setLocation("/business/onboarding");
     } else if (data.data.role === "admin") {
@@ -146,6 +196,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLocation("/");
     }
   };
+
+  // Register auth handlers for global fetch wrapper
+  useEffect(() => {
+    setAuthContextHandlers(setUser, setLocation);
+  }, [setLocation]);
 
   return (
     <AuthContext.Provider

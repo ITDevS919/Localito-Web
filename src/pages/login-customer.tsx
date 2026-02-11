@@ -11,6 +11,10 @@ export default function LoginCustomerPage() {
     return r && r.startsWith("/") ? r : undefined;
   }, []);
 
+  const signupHref = redirect
+    ? `/signup/customer?redirect=${encodeURIComponent(redirect)}`
+    : "/signup/customer";
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -32,7 +36,7 @@ export default function LoginCustomerPage() {
           <CardFooter className="flex flex-col space-y-3">
             <div className="text-sm text-center text-muted-foreground">
               New to Localito?{" "}
-              <Link href="/signup/customer" className="text-primary hover:underline font-medium">
+              <Link href={signupHref} className="text-primary hover:underline font-medium">
                 Create a customer account
               </Link>
             </div>

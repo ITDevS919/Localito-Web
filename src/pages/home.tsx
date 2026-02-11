@@ -391,7 +391,7 @@ export default function Home() {
                 Buy now and pick up in minutes, or book your service.
               </h1>
               <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 max-w-xl">
-                A curated marketplace for independent makers and local shops.
+                A curated marketplace for independent businesses and local shops.
               </p>
             </div>
 

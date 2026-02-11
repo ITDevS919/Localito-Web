@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Star, StarHalf, Store, Heart, MapPin, Navigation } from "lucide-react";
-import { getGoogleMapsDirectionsUrl, buildAddressString } from "@/lib/maps";
+import { Loader2, Star, StarHalf, Store, Heart } from "lucide-react";
+import { BackButton } from "@/components/navigation/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
@@ -16,9 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { MessageCircle } from "lucide-react";
 import { startChatWithBusiness } from "@/utils/chatHelpers";
+import { Badge } from "@/components/ui/badge";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -37,11 +39,8 @@ interface Product {
   averageRating?: number;
   business_name?: string;
   business_username?: string;
-  business_address?: string | null;
   city?: string;
   postcode?: string;
-  business_latitude?: number | null;
-  business_longitude?: number | null;
 }
 
 interface Review {
@@ -68,17 +67,131 @@ export default function ProductDetailPage() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [adding, setAdding] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [togglingFollow, setTogglingFollow] = useState(false);
+  const [checkingFollowStatus, setCheckingFollowStatus] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [zoomedImageIndex, setZoomedImageIndex] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const businessSlug = product?.business_username || product?.businessId || product?.retailerId;
-  const handleFollowShop = () => {
-    if (!businessSlug) return;
-    if (!isAuthenticated || user?.role !== "customer") {
-      toast({ title: "Log in to follow", description: "Log in to follow this shop." });
-      setLocation(`/login?redirect=${encodeURIComponent(`/business/${businessSlug}`)}`);
-    } else {
-      setLocation(`/business/${businessSlug}`);
+  const businessId = product?.businessId || product?.retailerId;
+
+  // Determine if current user is the owner of this business (business role only)
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (!isAuthenticated || user?.role !== "business" || !businessId) {
+        setIsOwner(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/business/profile`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.data?.id) {
+          setIsOwner(data.data.id === businessId);
+        } else {
+          setIsOwner(false);
+        }
+      } catch (err) {
+        console.error("Failed to check business ownership:", err);
+        setIsOwner(false);
+      }
+    };
+
+    checkOwnership();
+  }, [isAuthenticated, user?.role, businessId]);
+
+  // Check follow status when product loads (only for authenticated customers)
+  useEffect(() => {
+    if (!product || !businessId || !isAuthenticated || user?.role !== "customer") {
+      setFollowing(false);
+      return;
+    }
+
+    const checkFollowStatus = async () => {
+      setCheckingFollowStatus(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/business/${businessId}/follow`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setFollowing(data.data?.isFollowing || false);
+        }
+      } catch (err) {
+        console.error("Failed to check follow status:", err);
+      } finally {
+        setCheckingFollowStatus(false);
+      }
+    };
+
+    checkFollowStatus();
+  }, [product, businessId, isAuthenticated, user?.role]);
+
+  const handleFollowShop = async () => {
+    if (!businessId) return;
+
+    // Guest: prompt login to customer account and keep context on this product
+    if (!isAuthenticated) {
+      toast({
+        title: "Log in to follow",
+        description: "Log in to follow this shop and see their updates.",
+      });
+      const returnPath = `/product/${productId}`;
+      setLocation(`/login/customer?redirect=${encodeURIComponent(returnPath)}`);
+      return;
+    }
+
+    // Authenticated but not a customer (business/admin) – no follow, just info
+    if (!user || user.role !== "customer") {
+      toast({
+        title: "Customers only",
+        description: "Only customers can follow shops.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTogglingFollow(true);
+    try {
+      const method = following ? "DELETE" : "POST";
+      const res = await fetch(`${API_BASE_URL}/business/${businessId}/follow`, {
+        method,
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setFollowing(!following);
+        toast({
+          title: following ? "Unfollowed" : "Following",
+          description: following
+            ? "You've unfollowed this business"
+            : "You're now following this business",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to update follow status",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to toggle follow:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update follow status",
+        variant: "destructive",
+      });
+    } finally {
+      setTogglingFollow(false);
     }
   };
 
@@ -92,6 +205,9 @@ export default function ProductDetailPage() {
           throw new Error(data.message || "Failed to load product");
         }
         setProduct(data.data);
+        // Reset image state when product changes
+        setImageError(false);
+        setImageLoading(true);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -100,6 +216,26 @@ export default function ProductDetailPage() {
     };
     fetchProduct();
   }, [productId]);
+
+  // Keyboard navigation for zoomed image
+  useEffect(() => {
+    if (zoomedImageIndex === null || !product?.images) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setZoomedImageIndex(null);
+      } else if (e.key === "ArrowLeft" && product.images.length > 1) {
+        e.preventDefault();
+        setZoomedImageIndex((zoomedImageIndex - 1 + product.images.length) % product.images.length);
+      } else if (e.key === "ArrowRight" && product.images.length > 1) {
+        e.preventDefault();
+        setZoomedImageIndex((zoomedImageIndex + 1) % product.images.length);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [zoomedImageIndex, product?.images]);
 
   useEffect(() => {
     if (!productId) return;
@@ -171,6 +307,67 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "Log in to add to cart",
+        description: "Please log in to add items to your cart.",
+      });
+      setLocation(`/login/customer?redirect=/product/${productId}`);
+      return;
+    }
+    
+    if (!user || user.role !== "customer") {
+      toast({
+        title: "Customers only",
+        description: "Only customers can add items to cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (product.stock <= 0) {
+      toast({
+        title: "Out of stock",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to add to cart");
+      }
+      toast({
+        title: "Added to cart",
+        description: `${product.name} was added to your cart.`,
+      });
+    } catch (err: any) {
+      if (err?.message?.toLowerCase().includes("401")) {
+        setLocation(`/login/customer?redirect=/product/${productId}`);
+      } else {
+        toast({
+          title: "Could not add to cart",
+          description: err?.message || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const handleMessageSeller = async () => {
     if (!isAuthenticated) {
       toast({
@@ -229,6 +426,11 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
+        {!loading && !error && (
+          <div className="mb-6">
+            <BackButton fallbackHref="/search" label="Back" variant="ghost" />
+          </div>
+        )}
         {loading && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -240,21 +442,50 @@ export default function ProductDetailPage() {
         {!loading && !error && product && (
           <div className="grid gap-10 lg:grid-cols-2">
             <div className="space-y-4">
-              <div className="aspect-square w-full overflow-hidden rounded-2xl border border-border bg-muted">
+              <div 
+                className="aspect-square w-full overflow-hidden rounded-2xl border border-border bg-muted relative cursor-pointer group"
+                onClick={() => setZoomedImageIndex(0)}
+              >
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors z-20">
+                  <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
                 <img
-                  src={product.images?.[0] || "/opengraph.jpg"}
+                  src={imageError ? "/opengraph.jpg" : (product.images?.[0] || "/opengraph.jpg")}
                   alt={product.name}
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => {
+                    setImageError(true);
+                    setImageLoading(false);
+                  }}
                 />
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {(product.images || []).slice(0, 4).map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={img}
-                    alt={`${product.name}-${idx}`}
-                    className="h-20 w-full rounded-lg object-cover border border-border"
-                  />
+                  <div 
+                    key={idx} 
+                    className="aspect-square w-full overflow-hidden rounded-lg border border-border bg-muted cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => setZoomedImageIndex(idx)}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name}-${idx}`}
+                      className="h-full w-full object-cover block"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/opengraph.jpg";
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -272,21 +503,39 @@ export default function ProductDetailPage() {
                   </div>
                 )}
               </div>
-              <p className="text-lg text-muted-foreground whitespace-pre-line">
+              <p className="text-lg text-muted-foreground whitespace-pre-line break-words">
                 {product.description}
               </p>
               <div className="text-3xl font-semibold text-primary">£{product.price.toFixed(2)}</div>
+              {product.stock > 0 && product.stock <= 5 && (
+                <Badge variant="outline" className="mb-2 border-orange-500 text-orange-600 dark:text-orange-400">
+                  ⚠️ Only {product.stock} left in stock!
+                </Badge>
+              )}
               <p className="text-sm text-muted-foreground">
                 Stock: {product.stock > 0 ? product.stock : "Out of stock"}
               </p>
               <div className="flex gap-2">
-                <Button onClick={handleMessageSeller}>
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={adding || product.stock <= 0}
+                  className="flex-1"
+                >
+                  {adding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : product.stock <= 0 ? (
+                    "Out of Stock"
+                  ) : (
+                    "Add to Cart"
+                  )}
+                </Button>
+                <Button onClick={handleMessageSeller} variant="outline">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Seller
                 </Button>
-                <Link href="/cart">
-                  <Button variant="outline">Go to cart</Button>
-                </Link>
               </div>
               <div className="pt-4">
                 <h3 className="font-semibold mb-2">Sold by</h3>
@@ -305,47 +554,43 @@ export default function ProductDetailPage() {
                           {product.business_username && (
                             <p className="text-sm text-muted-foreground">@{product.business_username}</p>
                           )}
-                          {(product.city || product.postcode || product.business_address) && (
+                          {(product.city || product.postcode) && (
                             <p className="text-sm text-muted-foreground">
-                              {buildAddressString({
-                                business_address: product.business_address,
-                                city: product.city,
-                                postcode: product.postcode,
-                              }) || [product.city, product.postcode].filter(Boolean).join(", ")}
+                              {[product.city, product.postcode].filter(Boolean).join(", ")}
                             </p>
-                          )}
-                          {(product.business_address || product.city || product.postcode) && (
-                            <a
-                              href={getGoogleMapsDirectionsUrl(
-                                buildAddressString({
-                                  business_address: product.business_address,
-                                  city: product.city,
-                                  postcode: product.postcode,
-                                }),
-                                product.business_latitude,
-                                product.business_longitude
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-1"
-                            >
-                              <Navigation className="h-4 w-4" />
-                              Get directions
-                            </a>
                           )}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Link href={`/business/${businessSlug}`}>
+                        <Link 
+                          href={`/business/${businessSlug}`}
+                          onClick={() => {
+                            // Store current product page for back navigation
+                            if (productId) {
+                              sessionStorage.setItem('lastProductPage', `/product/${productId}`);
+                            }
+                          }}
+                        >
                           <Button variant="outline">
                             <Store className="h-4 w-4 mr-2" />
                             View Shop
                           </Button>
                         </Link>
-                        <Button variant="outline" onClick={handleFollowShop}>
-                          <Heart className="h-4 w-4 mr-2" />
-                          Follow shop
-                        </Button>
+                        {/* Follow is a customer-only action and not shown to the owner */}
+                        {!isOwner && (!isAuthenticated || user?.role === "customer") && (
+                          <Button
+                            variant="outline"
+                            onClick={handleFollowShop}
+                            disabled={togglingFollow || checkingFollowStatus || !businessId}
+                          >
+                            <Heart className={`h-4 w-4 mr-2 ${following ? "fill-current" : ""}`} />
+                            {togglingFollow || checkingFollowStatus
+                              ? "..."
+                              : following
+                                ? "Following"
+                                : "Follow shop"}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -464,7 +709,7 @@ export default function ProductDetailPage() {
                     </CardHeader>
                     {review.comment && (
                       <CardContent>
-                        <p className="text-muted-foreground whitespace-pre-line">{review.comment}</p>
+                        <p className="text-muted-foreground whitespace-pre-line break-words">{review.comment}</p>
                       </CardContent>
                     )}
                   </Card>
@@ -473,6 +718,54 @@ export default function ProductDetailPage() {
             )}
           </div>
         )}
+
+        {/* Image Zoom Modal */}
+        <Dialog open={zoomedImageIndex !== null} onOpenChange={(open) => !open && setZoomedImageIndex(null)}>
+          <DialogContent className="max-w-7xl w-full h-full max-h-[90vh] p-0 bg-black/95 border-none">
+            <div className="relative w-full h-full flex items-center justify-center">
+              {zoomedImageIndex !== null && product?.images && product.images.length > 0 && (
+                <>
+                  <img
+                    src={product.images[zoomedImageIndex] || "/opengraph.jpg"}
+                    alt={`${product.name} - Image ${zoomedImageIndex + 1}`}
+                    className="max-w-full max-h-[90vh] object-contain"
+                  />
+                  
+                  {/* Navigation Arrows */}
+                  {product.images.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomedImageIndex((zoomedImageIndex - 1 + product.images.length) % product.images.length);
+                        }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors backdrop-blur-sm"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft className="h-6 w-6" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomedImageIndex((zoomedImageIndex + 1) % product.images.length);
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors backdrop-blur-sm"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="h-6 w-6" />
+                      </button>
+                      
+                      {/* Image Counter */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+                        {zoomedImageIndex + 1} / {product.images.length}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

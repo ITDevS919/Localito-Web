@@ -62,7 +62,7 @@ export default function WishlistPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <div className="container mx-auto px-4 py-10">
+        <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
           <div className="text-center py-20">
             <Heart className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h1 className="text-3xl font-bold mb-4">Sign in to view your wishlist</h1>
@@ -81,7 +81,7 @@ export default function WishlistPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">My Wishlist</h1>
           <p className="text-muted-foreground">

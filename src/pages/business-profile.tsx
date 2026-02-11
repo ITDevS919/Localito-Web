@@ -7,11 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { Store, MapPin, Phone, Heart, Share2, Image as ImageIcon, ArrowLeft, ChevronLeft } from "lucide-react";
-import { BusinessLocationMap } from "@/components/location/BusinessLocationMap";
+import { Store, MapPin, Phone, Heart, Share2, ChevronLeft, Loader2 } from "lucide-react";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/lib/product";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { BackButton } from "@/components/navigation/BackButton";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -24,8 +26,6 @@ interface BusinessProfile {
   postcode?: string;
   city?: string;
   phone?: string;
-  latitude?: number | null;
-  longitude?: number | null;
   banner_image?: string;
   follower_count: number;
   isFollowing?: boolean;
@@ -51,17 +51,28 @@ export default function BusinessProfilePage() {
   const [posts, setPosts] = useState<BusinessPost[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
   const [togglingFollow, setTogglingFollow] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [referrer, setReferrer] = useState<string | null>(null);
 
   useEffect(() => {
     if (businessId) {
       fetchBusinessProfile();
     }
+    
+    // Get referrer from sessionStorage (set when clicking "View Shop" from product)
+    const storedReferrer = sessionStorage.getItem('lastProductPage');
+    if (storedReferrer) {
+      setReferrer(storedReferrer);
+      // Clear it after reading to avoid stale data
+      sessionStorage.removeItem('lastProductPage');
+    }
   }, [businessId, user]);
 
   const fetchBusinessProfile = async () => {
+    setError(null);
     try {
       // If user is admin, try admin endpoint first for unapproved businesses
       let res;
@@ -148,10 +159,15 @@ export default function BusinessProfilePage() {
           setFollowing(false);
           fetchPosts(biz.id);
           fetchProducts(biz.id);
+        } else {
+          setError(adminData.message || "Business not found");
         }
+      } else {
+        setError(data.message || "Business not found");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch business profile:", err);
+      setError(err.message || "Failed to load business profile. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -263,7 +279,7 @@ export default function BusinessProfilePage() {
         description: "Log in to follow this shop and see their updates.",
       });
       const returnPath = `/business/${business?.username || business?.id || businessId}`;
-      setLocation(`/login?redirect=${encodeURIComponent(returnPath)}`);
+      setLocation(`/login/customer?redirect=${encodeURIComponent(returnPath)}`);
       return;
     }
     handleFollow();
@@ -308,29 +324,44 @@ export default function BusinessProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center pt-28 md:pt-32 min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading business profile...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!business) {
+  if (error || !business) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center pt-28 md:pt-32 min-h-[60vh]">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Business not found</h1>
+            <p className="text-muted-foreground mb-4">
+              {error || "The business you're looking for doesn't exist or has been removed."}
+            </p>
           <Link href="/">
             <Button>Go Home</Button>
           </Link>
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
+
       {/* Banner */}
-      <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10">     
+      <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 pt-28 md:pt-32">
         {business.banner_image ? (
           <img
             src={business.banner_image}
@@ -369,17 +400,17 @@ export default function BusinessProfilePage() {
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {(business.business_address || business.city || business.postcode) && (
-                    <div className="w-full">
-                      <BusinessLocationMap
-                        business_address={business.business_address}
-                        city={business.city}
-                        postcode={business.postcode}
-                        latitude={business.latitude}
-                        longitude={business.longitude}
-                        businessName={business.business_name}
-                        showEmbed={true}
-                      />
-                    </div>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        [business.business_address, business.city, business.postcode].filter(Boolean).join(", ")
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-primary hover:underline focus:underline"
+                    >
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      {business.business_address || [business.city, business.postcode].filter(Boolean).join(", ")}
+                    </a>
                   )}
                   {business.phone && (
                     <a
@@ -416,13 +447,27 @@ export default function BusinessProfilePage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {isOwner && (
+                {/* Show "Back to Product" if coming from product page */}
+                {referrer && (
+                  <Link href={referrer}>
+                    <Button variant="outline">
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Back to Product
+                    </Button>
+                  </Link>
+                )}
+                {/* Show "Back to Dashboard" for owners */}
+                {isOwner && !referrer && (
                   <Link href="/business/dashboard">
                     <Button variant="outline" className="bg-background/80 hover:bg-background">
                       <ChevronLeft className="h-4 w-4 mr-2" />
-                      Back
+                      Back to Dashboard
                     </Button>
                   </Link>
+                )}
+                {/* Show generic back button for customers if no referrer */}
+                {!isOwner && !referrer && (
+                  <BackButton fallbackHref="/search" label="Back" variant="outline" />
                 )}
                 <Button variant="outline" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />
@@ -482,6 +527,7 @@ export default function BusinessProfilePage() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

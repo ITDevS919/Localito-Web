@@ -125,7 +125,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-6 max-w-7xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Messages</h1>
           <p className="text-muted-foreground">Chat with sellers and support</p>

@@ -505,7 +505,7 @@ export function CreateServiceModal({
                     htmlFor="imageFile"
                     className="flex-1 cursor-pointer"
                   >
-                    <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg hover:bg-secondary/50 transition-colors">
+                    <div className="flex items-center justify-center w-full aspect-square max-w-sm mx-auto border-2 border-dashed border-border rounded-lg hover:bg-secondary/50 transition-colors overflow-hidden">
                       {uploadedImage ? (
                         <div className="relative w-full h-full">
                           <img
@@ -556,11 +556,11 @@ export function CreateServiceModal({
                   disabled={loading}
                 />
                 {formData.imageUrl && (
-                  <div className="mt-2">
+                  <div className="mt-2 aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-lg border border-border">
                     <img
                       src={formData.imageUrl}
                       alt="Preview"
-                      className="w-full h-32 object-cover rounded-lg border border-border"
+                      className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
                       }}

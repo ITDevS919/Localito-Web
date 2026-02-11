@@ -3,6 +3,7 @@ import { Search, Menu, User, LogOut, Coins, MessageCircle, ShoppingCart } from "
 import { Button } from "@/components/ui/button";
 import { ASSETS } from "@/lib/product";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,11 +27,15 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const [userPoints, setUserPoints] = useState<{ balance: number } | null>(null);
+  const [cartItemCount, setCartItemCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "customer") {
       fetchUserPoints();
+      fetchCartCount();
+    } else {
+      setCartItemCount(0);
     }
   }, [isAuthenticated, user]);
 
@@ -45,6 +50,31 @@ export function Navbar() {
       }
     } catch (err) {
       console.error("Failed to fetch user points:", err);
+    }
+  };
+
+  const fetchCartCount = async () => {
+    try {
+      const [productsRes, servicesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/cart`, { credentials: "include" }),
+        fetch(`${API_BASE_URL}/cart/services`, { credentials: "include" }),
+      ]);
+      
+      const productsData = await productsRes.json();
+      const servicesData = await servicesRes.json();
+      
+      let count = 0;
+      if (productsRes.ok && productsData.success && Array.isArray(productsData.data)) {
+        count += productsData.data.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+      }
+      if (servicesRes.ok && servicesData.success && Array.isArray(servicesData.data)) {
+        count += servicesData.data.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+      }
+      
+      setCartItemCount(count);
+    } catch (err) {
+      console.error("Failed to fetch cart count:", err);
+      setCartItemCount(0);
     }
   };
 
@@ -83,11 +113,22 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <Link href="/cart" className="hidden md:block">
-            <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full" aria-label="Cart">
-              <ShoppingCart className="h-5 w-5" />
-            </Button>
-          </Link>
+          {/* Cart Icon - Show for customers */}
+          {isAuthenticated && user?.role === "customer" && (
+            <Link href="/cart" className="relative">
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background"
+                  >
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+          )}
+          
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -196,14 +237,6 @@ export function Navbar() {
                   >
                     Our Story
                   </Link>
-                  <Link
-                    href="/cart"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    Cart
-                  </Link>
                 </nav>
                 <div className="border-t border-border pt-4">
                   {isAuthenticated && user ? (
@@ -227,6 +260,21 @@ export function Navbar() {
                       </Link>
                       {user.role === "customer" && (
                         <>
+                          <Link
+                            href="/cart"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          >
+                            <div className="relative">
+                              <ShoppingCart className="h-4 w-4" />
+                              {cartItemCount > 0 && (
+                                <span className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center text-xs bg-primary text-primary-foreground rounded-full">
+                                  {cartItemCount > 99 ? "99+" : cartItemCount}
+                                </span>
+                              )}
+                            </div>
+                            Cart{cartItemCount > 0 && ` (${cartItemCount})`}
+                          </Link>
                           <Link
                             href="/points"
                             onClick={() => setMobileMenuOpen(false)}

@@ -4,10 +4,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Package, MapPin, Calendar, CreditCard, Tag, Coins, QrCode, Clock, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Package, MapPin, Calendar, CreditCard, Tag, Coins, QrCode, Clock, AlertCircle, CheckCircle, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -78,12 +78,15 @@ export default function OrderDetailPage() {
     loadOrder();
   }, [orderId]);
 
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "true") {
+      setShowSuccessMessage(true);
       toast({
         title: "Payment successful",
-        description: "Your order has been confirmed",
+        description: "Your order has been confirmed. You'll receive a confirmation email shortly.",
       });
       // Reload order to get updated payment status
       if (orderId) {
@@ -94,6 +97,13 @@ export default function OrderDetailPage() {
       if (params.get("checkMorePayments") === "true") {
         checkForRemainingPayments();
       }
+
+      // Clear success message after 10 seconds
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        // Clean up URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 10000);
     }
   }, [orderId]);
 
@@ -274,7 +284,7 @@ export default function OrderDetailPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
         <div className="mb-6">
           <Link href="/orders">
             <Button variant="ghost" className="mb-4">
@@ -305,6 +315,42 @@ export default function OrderDetailPage() {
                 >
                   Complete Payment
                 </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Success Message */}
+          {showSuccessMessage && (
+            <Alert className="mt-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                <div className="font-semibold mb-2">Order Confirmed! 🎉</div>
+                <p className="text-sm mb-3">
+                  Your order has been placed successfully. You'll receive a confirmation email shortly with all the details.
+                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="font-semibold text-sm">What's Next?</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>We'll notify you when your order is ready for pickup</li>
+                    <li>Bring your QR code (shown below) when collecting</li>
+                    {order.points_earned && (
+                      <li>You'll earn £{Number(order.points_earned).toFixed(2)} cashback after collection</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <Link href="/search">
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <ShoppingBag className="h-4 w-4 mr-2" />
+                      Continue Shopping
+                    </Button>
+                  </Link>
+                  <Link href="/orders">
+                    <Button size="sm" variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
+                      View All Orders
+                    </Button>
+                  </Link>
+                </div>
               </AlertDescription>
             </Alert>
           )}

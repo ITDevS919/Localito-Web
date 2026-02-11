@@ -31,6 +31,14 @@ interface Order {
     price: number;
     images: string[];
   }>;
+  serviceItems?: Array<{
+    id: string;
+    service_id: string;
+    service_name: string;
+    quantity: number;
+    price: number;
+    images: string[];
+  }>;
   discount_amount?: number;
   points_redeemed?: number;
   points_earned?: number;
@@ -86,6 +94,41 @@ export default function AdminOrdersPage() {
 
   const getOrderCountByStatus = (status: string) => {
     return orders.filter((o) => o.status === status).length;
+  };
+
+  const getOrderDisplayName = (order: Order): string => {
+    const allItems: string[] = [];
+    
+    // Add product names
+    if (order.items && order.items.length > 0) {
+      order.items.forEach((item) => {
+        for (let i = 0; i < item.quantity; i++) {
+          allItems.push(item.product_name);
+        }
+      });
+    }
+    
+    // Add service names
+    if (order.serviceItems && order.serviceItems.length > 0) {
+      order.serviceItems.forEach((item) => {
+        for (let i = 0; i < item.quantity; i++) {
+          allItems.push(item.service_name);
+        }
+      });
+    }
+    
+    if (allItems.length === 0) {
+      return "Order";
+    }
+    
+    // Show first item name, or first 3 items if multiple
+    if (allItems.length === 1) {
+      return allItems[0];
+    } else if (allItems.length <= 3) {
+      return allItems.slice(0, 3).join(", ");
+    } else {
+      return `${allItems.slice(0, 3).join(", ")} and ${allItems.length - 3} more`;
+    }
   };
 
   if (loading) {
@@ -215,6 +258,9 @@ export default function AdminOrdersPage() {
                         Order #{order.id.substring(0, 8)}
                         {getStatusBadge(order.status)}
                       </CardTitle>
+                      <p className="text-sm font-medium text-foreground mt-1">
+                        {getOrderDisplayName(order)}
+                      </p>
                       <p className="text-sm text-muted-foreground mt-1">
                         {new Date(order.created_at).toLocaleString()}
                       </p>

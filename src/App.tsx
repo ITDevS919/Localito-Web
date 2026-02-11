@@ -33,6 +33,7 @@ import AdminSettingsPage from "@/pages/admin-settings";
 import LoginAdminPage from "@/pages/login-admin";
 import LoginCustomerPage from "@/pages/login-customer";
 import LoginBusinessPage from "@/pages/login-business";
+import LoginPage from "@/pages/login";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import SignupCustomerPage from "@/pages/signup-customer";
@@ -69,7 +70,10 @@ function Router() {
       <Route path="/service/:id" component={ServiceDetailPage} />
 
       {/* Customer auth */}
+      {/* Specific routes must come before generic /login route */}
       <Route path="/login/customer" component={LoginCustomerPage} />
+      <Route path="/login/business" component={LoginBusinessPage} />
+      <Route path="/login" component={LoginPage} />
       <Route path="/signup/customer" component={SignupCustomerPage} />
 
       {/* Forgot & reset password */}
@@ -79,7 +83,6 @@ function Router() {
 
       {/* Business auth */}
       <Route path="/for-businesses" component={ForBusinessesPage} />
-      <Route path="/login/business" component={LoginBusinessPage} />
       <Route path="/signup/business" component={SignupBusinessPage} />
 
       {/* Admin auth */}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Loader2, Plus, Minus, Calendar } from "lucide-react";
+import { Loader2, Plus, Minus, Calendar, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
@@ -136,8 +136,15 @@ export default function CartPage() {
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4 order-2 lg:order-1">
               {items.length === 0 && serviceItems.length === 0 ? (
-                <div className="rounded-xl border border-border p-6 text-center text-muted-foreground">
-                  Cart is empty.
+                <div className="rounded-xl border border-border p-12 text-center">
+                  <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-xl font-semibold mb-2">Your cart is empty</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Start shopping to add items to your cart
+                  </p>
+                  <Link href="/search">
+                    <Button>Browse Products</Button>
+                  </Link>
                 </div>
               ) : (
                 <>
@@ -263,16 +270,12 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <span>£{subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Delivery</span>
-                <span>£0.00 (pickup)</span>
-              </div>
               <div className="flex justify-between text-lg font-semibold pt-2">
                 <span>Total</span>
                 <span>£{subtotal.toFixed(2)}</span>
               </div>
               <Link href="/checkout">
-                <Button className="w-full" disabled={items.length === 0}>
+                <Button className="w-full" disabled={items.length === 0 && serviceItems.length === 0}>
                   Proceed to Checkout
                 </Button>
               </Link>

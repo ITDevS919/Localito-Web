@@ -456,20 +456,6 @@ export default function SearchPage() {
               <span className="hidden sm:inline">Search</span>
             </Button>
           </div>
-          {/* Browse: Businesses, Services, Products (match home) */}
-          <div className="flex flex-wrap items-center gap-6 pt-3">
-            {[
-              { label: "Businesses", href: "/search" },
-              { label: "Services", href: "/search?tab=services" },
-              { label: "Products", href: "/search?tab=products" },
-            ].map(({ label, href }) => (
-              <Link key={label} href={href}>
-                <span className="font-semibold text-foreground tracking-tight hover:text-primary transition-colors cursor-pointer">
-                  {label}
-                </span>
-              </Link>
-            ))}
-          </div>
           {/* Use my location toggle */}
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50 mt-2">
             <div className="flex items-center gap-2">
@@ -798,10 +784,28 @@ export default function SearchPage() {
                   <>
                     {filteredAndSortedProducts.length === 0 && filteredAndSortedServices.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <p className="text-lg font-semibold text-muted-foreground">No results found</p>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                        <p className="text-lg font-semibold text-foreground mb-2">No results found</p>
+                        <p className="text-sm text-muted-foreground mb-4">
                           Try adjusting your search or filters
                         </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setSearchInput("");
+                              setSelectedCategories([]);
+                              setPriceRange([0, 1000]);
+                              setFilterLocation("");
+                              setBusinessTypeCategoryId(null);
+                            }}
+                          >
+                            Clear Filters
+                          </Button>
+                          <Link href="/">
+                            <Button>Browse Featured</Button>
+                          </Link>
+                        </div>
                       </div>
                     ) : (
                       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

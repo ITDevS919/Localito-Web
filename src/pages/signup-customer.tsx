@@ -1,9 +1,16 @@
 import { Link } from "wouter";
+import { useMemo } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ASSETS } from "@/lib/product";
 
 export default function SignupCustomerPage() {
+  const redirect = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get("redirect");
+    return r && r.startsWith("/") ? r : undefined;
+  }, []);
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -20,7 +27,7 @@ export default function SignupCustomerPage() {
         <Card>
           <CardHeader />
           <CardContent>
-            <AuthForm variant="signup" role="customer" />
+            <AuthForm variant="signup" role="customer" redirect={redirect} />
           </CardContent>
           <CardFooter className="flex flex-col space-y-3">
             <div className="text-sm text-center text-muted-foreground">

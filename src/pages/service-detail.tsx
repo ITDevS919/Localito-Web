@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Calendar, Clock, MapPin, MessageCircle, Star, StarHalf, Navigation } from "lucide-react";
-import { buildAddressString, getGoogleMapsDirectionsUrl } from "@/lib/maps";
+import { Loader2, Calendar, Clock, MapPin, MessageCircle, Star, StarHalf, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { startChatWithBusiness } from "@/utils/chatHelpers";
+import { BackButton } from "@/components/navigation/BackButton";
 import { useLocation } from "wouter";
 import {
   Dialog,
@@ -37,11 +37,6 @@ interface Service {
   retailer_id?: string; // Legacy support
   business_name?: string; // Formerly retailer_name
   retailer_name?: string; // Legacy support
-  business_address?: string | null;
-  city?: string | null;
-  postcode?: string | null;
-  business_latitude?: number | null;
-  business_longitude?: number | null;
   reviewCount?: number;
   averageRating?: number;
 }
@@ -72,6 +67,9 @@ export default function ServiceDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
   const [selectedImage, setSelectedImage] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [zoomedImageIndex, setZoomedImageIndex] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -85,6 +83,9 @@ export default function ServiceDetailPage() {
           throw new Error(data.message || "Failed to load service");
         }
         setService(data.data);
+        // Reset image state when service changes
+        setImageError(false);
+        setImageLoading(true);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -287,7 +288,12 @@ export default function ServiceDetailPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 pt-32 md:pt-40 pb-10">
+        {!loading && !error && (
+          <div className="mb-6">
+            <BackButton fallbackHref="/search" label="Back" variant="ghost" />
+          </div>
+        )}
         {loading && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -299,11 +305,29 @@ export default function ServiceDetailPage() {
         {!loading && !error && service && (
           <div className="grid gap-10 lg:grid-cols-2">
             <div className="space-y-4">
-              <div className="aspect-square w-full overflow-hidden rounded-2xl border border-border bg-muted">
+              <div 
+                className="aspect-square w-full overflow-hidden rounded-2xl border border-border bg-muted relative cursor-pointer group"
+                onClick={() => setZoomedImageIndex(selectedImage)}
+              >
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors z-20">
+                  <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
                 <img
-                  src={service.images?.[selectedImage] || service.images?.[0] || "/opengraph.jpg"}
+                  src={imageError ? "/opengraph.jpg" : (service.images?.[selectedImage] || service.images?.[0] || "/opengraph.jpg")}
                   alt={service.name}
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => {
+                    setImageError(true);
+                    setImageLoading(false);
+                  }}
                 />
               </div>
               {service.images && service.images.length > 1 && (
@@ -311,8 +335,15 @@ export default function ServiceDetailPage() {
                   {service.images.slice(0, 4).map((img, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setSelectedImage(idx)}
-                      className={`h-20 w-full rounded-lg object-cover border-2 transition-all ${
+                      onClick={() => {
+                        setSelectedImage(idx);
+                        setImageError(false);
+                        setImageLoading(true);
+                      }}
+                      onDoubleClick={() => {
+                        setZoomedImageIndex(idx);
+                      }}
+                      className={`aspect-square w-full overflow-hidden rounded-lg border-2 transition-all cursor-pointer ${
                         selectedImage === idx
                           ? "border-primary"
                           : "border-border hover:border-primary/50"
@@ -321,7 +352,13 @@ export default function ServiceDetailPage() {
                       <img
                         src={img}
                         alt={`${service.name}-${idx}`}
-                        className="h-full w-full rounded-lg object-cover"
+                        className="h-full w-full object-cover block"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/opengraph.jpg";
+                        }}
                       />
                     </button>
                   ))}
@@ -342,7 +379,7 @@ export default function ServiceDetailPage() {
                   </div>
                 )}
               </div>
-              <p className="text-lg text-muted-foreground whitespace-pre-line">
+              <p className="text-lg text-muted-foreground whitespace-pre-line break-words">
                 {service.description || "No description available."}
               </p>
               <div className="text-3xl font-semibold text-primary">£{Number(service.price).toFixed(2)}</div>
@@ -390,34 +427,12 @@ export default function ServiceDetailPage() {
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Seller
                 </Button>
-                <Link href="/cart">
-                  <Button variant="outline">Go to cart</Button>
-                </Link>
               </div>
               <div className="pt-4">
                 <h3 className="font-semibold mb-2">Service Provider</h3>
                 <p className="text-sm text-muted-foreground">
                   {service.business_name || service.retailer_name || `Business ID: ${service.business_id || service.retailer_id}`}
                 </p>
-                {(service.business_address || service.city || service.postcode) && (
-                  <a
-                    href={getGoogleMapsDirectionsUrl(
-                      buildAddressString({
-                        business_address: service.business_address,
-                        city: service.city,
-                        postcode: service.postcode,
-                      }),
-                      service.business_latitude,
-                      service.business_longitude
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
-                  >
-                    <Navigation className="h-4 w-4" />
-                    Get directions to business
-                  </a>
-                )}
               </div>
             </div>
           </div>
@@ -531,7 +546,7 @@ export default function ServiceDetailPage() {
                     </CardHeader>
                     {review.comment && (
                       <CardContent>
-                        <p className="text-muted-foreground whitespace-pre-line">{review.comment}</p>
+                        <p className="text-muted-foreground whitespace-pre-line break-words">{review.comment}</p>
                       </CardContent>
                     )}
                   </Card>
@@ -540,6 +555,54 @@ export default function ServiceDetailPage() {
             )}
           </div>
         )}
+
+        {/* Image Zoom Modal */}
+        <Dialog open={zoomedImageIndex !== null} onOpenChange={(open) => !open && setZoomedImageIndex(null)}>
+          <DialogContent className="max-w-7xl w-full h-full max-h-[90vh] p-0 bg-black/95 border-none">
+            <div className="relative w-full h-full flex items-center justify-center">
+              {zoomedImageIndex !== null && service?.images && service.images.length > 0 && (
+                <>
+                  <img
+                    src={service.images[zoomedImageIndex] || "/opengraph.jpg"}
+                    alt={`${service.name} - Image ${zoomedImageIndex + 1}`}
+                    className="max-w-full max-h-[90vh] object-contain"
+                  />
+                  
+                  {/* Navigation Arrows */}
+                  {service.images.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomedImageIndex((zoomedImageIndex - 1 + service.images.length) % service.images.length);
+                        }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors backdrop-blur-sm"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft className="h-6 w-6" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomedImageIndex((zoomedImageIndex + 1) % service.images.length);
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors backdrop-blur-sm"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="h-6 w-6" />
+                      </button>
+                      
+                      {/* Image Counter */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+                        {zoomedImageIndex + 1} / {service.images.length}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

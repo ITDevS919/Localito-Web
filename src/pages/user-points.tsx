@@ -85,7 +85,7 @@ export default function UserPointsPage() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto px-4 py-10">
+        <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
@@ -97,7 +97,7 @@ export default function UserPointsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-10 max-w-4xl">
+      <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">My Points</h1>
           <p className="text-muted-foreground">View your cashback points and transaction history</p>

@@ -1,16 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, AlertCircle, Tag, Coins, CheckCircle2, X, Calendar } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle, Tag, Coins, CheckCircle2, X, Calendar, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -84,6 +94,10 @@ export default function CheckoutPage() {
     email: user?.email || "",
     pickupInstructions: "",
   });
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancellingOrders, setCancellingOrders] = useState(false);
+  const hasPendingOrders = useRef(false);
+  const isNavigatingAway = useRef(false);
 
   useEffect(() => {
     loadCart();
@@ -96,6 +110,61 @@ export default function CheckoutPage() {
         email: prev.email || user.email || "",
       }));
     }
+    
+    // Check for canceled payment query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('canceled') === 'true') {
+      toast({
+        title: "Payment canceled",
+        description: "Your payment was canceled. You can try again or continue shopping.",
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    // Check if we have pending orders from sessionStorage
+    const pendingOrders = sessionStorage.getItem('pendingOrderIds');
+    if (pendingOrders) {
+      try {
+        const orderIds = JSON.parse(pendingOrders);
+        if (orderIds.length > 0) {
+          hasPendingOrders.current = true;
+        }
+      } catch (e) {
+        // Invalid JSON, ignore
+      }
+    }
+
+    // Back button detection using popstate
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasPendingOrders.current && !isNavigatingAway.current) {
+        e.preventDefault();
+        setShowCancelDialog(true);
+        // Push state back to prevent navigation
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    // Before unload warning
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasPendingOrders.current && !isNavigatingAway.current) {
+        e.preventDefault();
+        e.returnValue = 'You have pending orders. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Push state to track back button
+    window.history.pushState(null, '', window.location.href);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [user]);
 
   const loadCart = async () => {
@@ -253,6 +322,11 @@ export default function CheckoutPage() {
   const pointsDiscount = pointsToRedeem || 0;
   const total = Math.max(0, subtotal - discountAmount - pointsDiscount);
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handlePlaceOrder = async () => {
     if (items.length === 0 && serviceItems.length === 0) {
       setError("Your cart is empty");
@@ -261,6 +335,17 @@ export default function CheckoutPage() {
 
     if (!formData.fullName || !formData.email) {
       setError("Please fill in all required fields");
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Check if total is zero (free order after discounts/points)
+    if (total <= 0) {
+      setError("Order total must be greater than zero. Please remove some discounts or points.");
       return;
     }
 
@@ -389,6 +474,13 @@ export default function CheckoutPage() {
         }
       }
 
+      // Store order IDs for back button tracking
+      if (data.data.orders && Array.isArray(data.data.orders)) {
+        const orderIds = data.data.orders.map((o: any) => o.id);
+        sessionStorage.setItem('pendingOrderIds', JSON.stringify(orderIds));
+        hasPendingOrders.current = true;
+      }
+
       // Check if Stripe checkout is required
       if (data.data.checkoutSessions && data.data.checkoutSessions.length > 0) {
         // Handle multiple checkout sessions (multiple businesses)
@@ -398,6 +490,9 @@ export default function CheckoutPage() {
           sessionStorage.setItem('pendingCheckoutSessions', JSON.stringify(remainingSessions));
           sessionStorage.setItem('completedOrderIds', JSON.stringify([]));
         }
+        
+        // Mark that we're navigating away (so back button handler doesn't trigger)
+        isNavigatingAway.current = true;
         
         // Redirect to first Stripe Checkout
         const checkoutUrl = data.data.checkoutSessions[0].checkoutUrl;
@@ -415,7 +510,18 @@ export default function CheckoutPage() {
       // No Stripe checkout needed - this shouldn't happen for normal orders
       // Log a warning and show an error
       console.warn('Order created but no checkout session was created. This may indicate the business has not set up Stripe Connect.');
-      setError("Payment processing is not available for this business. Please contact the business directly.");
+      
+      // Get business names for better error message
+      const businessNames = Array.from(new Set([
+        ...orderGroups.map(g => g.business_name),
+        ...serviceGroups.map(g => g.business_name)
+      ]));
+      
+      setError(
+        `Payment processing is not available for ${businessNames.length > 1 ? 'these businesses' : 'this business'}: ${businessNames.join(', ')}. ` +
+        `The business${businessNames.length > 1 ? 'es need' : ' needs'} to complete Stripe Connect setup to accept payments. ` +
+        `Please contact ${businessNames.length > 1 ? 'them' : 'the business'} directly or try again later.`
+      );
       setPlacingOrder(false);
     } catch (err: any) {
       setError(err.message || "Failed to place order");
@@ -427,7 +533,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <div className="container mx-auto px-4 py-10">
+        <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
@@ -436,11 +542,55 @@ export default function CheckoutPage() {
     );
   }
 
+  const handleCancelIncompleteOrders = async () => {
+    setCancellingOrders(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/cancel-incomplete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Clear pending orders tracking
+        sessionStorage.removeItem('pendingOrderIds');
+        hasPendingOrders.current = false;
+        isNavigatingAway.current = true;
+        
+        toast({
+          title: "Orders cancelled",
+          description: data.message || "Your incomplete orders have been cancelled.",
+        });
+        
+        // Navigate back to cart or home
+        setLocation("/cart");
+      } else {
+        throw new Error(data.message || "Failed to cancel orders");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to cancel incomplete orders",
+        variant: "destructive",
+      });
+    } finally {
+      setCancellingOrders(false);
+      setShowCancelDialog(false);
+    }
+  };
+
+  const handleContinueToPayment = () => {
+    setShowCancelDialog(false);
+    // User wants to continue - don't block navigation
+    // They can use browser back again if needed
+  };
+
   if (items.length === 0 && serviceItems.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <div className="container mx-auto px-4 py-10">
+        <div className="container mx-auto px-4 pt-28 md:pt-32 pb-10">
           <div className="text-center py-20">
             <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
             <Button onClick={() => setLocation("/")}>Continue Shopping</Button>
@@ -463,6 +613,19 @@ export default function CheckoutPage() {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Multi-business checkout explanation */}
+        {(orderGroups.length + serviceGroups.length) > 1 && (
+          <Alert className="mb-6 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-800 dark:text-blue-200">Multiple Businesses</AlertTitle>
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
+              Your cart contains items from {orderGroups.length + serviceGroups.length} different businesses. 
+              You'll complete separate payments for each business. This ensures each 
+              business receives their payment directly.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -793,6 +956,38 @@ export default function CheckoutPage() {
           </Card>
         </div>
       </div>
+
+      {/* Cancel Incomplete Orders Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Incomplete Orders?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have pending orders that haven't been paid yet. If you leave now, these orders will remain incomplete.
+              Would you like to cancel them and return to your cart?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleContinueToPayment}>
+              Continue to Payment
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelIncompleteOrders}
+              disabled={cancellingOrders}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancellingOrders ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                "Cancel Orders"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

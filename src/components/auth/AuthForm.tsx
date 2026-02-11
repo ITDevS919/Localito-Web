@@ -78,15 +78,18 @@ export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) 
         await login(username, password, redirect ? { redirect } : undefined);
       } else {
         // Include business data if signing up as business
-        const businessData = role === "business" ? {
-          businessName: businessName.trim(),
-          businessAddress: businessAddress.trim() || undefined,
-          postcode: postcode.trim() || undefined,
-          city: city.trim() || undefined,
-          phone: phone.trim() || undefined,
-        } : undefined;
-        
-        await signup(username, email, password, role, businessData);
+        const businessData =
+          role === "business"
+            ? {
+                businessName: businessName.trim(),
+                businessAddress: businessAddress.trim() || undefined,
+                postcode: postcode.trim() || undefined,
+                city: city.trim() || undefined,
+                phone: phone.trim() || undefined,
+              }
+            : undefined;
+
+        await signup(username, email, password, role, businessData, redirect ? { redirect } : undefined);
       }
       onSuccess?.();
     } catch (err: any) {
@@ -283,7 +286,12 @@ export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) 
         className="w-full"
         onClick={() => {
           const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-          window.location.href = `${API_BASE_URL}/auth/google?role=${role}`;
+          const url = new URL(`${API_BASE_URL}/auth/google`);
+          url.searchParams.set("role", role);
+          if (redirect && redirect.startsWith("/")) {
+            url.searchParams.set("redirect", redirect);
+          }
+          window.location.href = url.toString();
         }}
         disabled={loading}
       >
