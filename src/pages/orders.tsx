@@ -33,6 +33,8 @@ interface Order {
   retailer_name?: string; // Legacy support
   pickup_location?: string;
   points_earned?: number;
+  stripe_payment_intent_id?: string;
+  stripe_session_id?: string;
   items?: OrderItem[];
   serviceItems?: OrderServiceItem[];
 }
@@ -42,6 +44,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryingPayment, setRetryingPayment] = useState<string | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,6 +86,92 @@ export default function OrdersPage() {
         variant: "destructive",
       });
       setRetryingPayment(null);
+    }
+  };
+
+  // Automatically verify payment status for awaiting_payment orders
+  useEffect(() => {
+    if (loading || orders.length === 0) return;
+
+    const verifyPendingPayments = async () => {
+      const pendingOrders = orders.filter(
+        (o) => o.status === 'awaiting_payment' && (o.stripe_payment_intent_id || o.stripe_session_id)
+      );
+
+      if (pendingOrders.length === 0) return;
+
+      let ordersUpdated = false;
+
+      // Verify each pending order
+      for (const order of pendingOrders) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/orders/${order.id}/verify-payment`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          const data = await res.json();
+          if (data.success && data.data.orderUpdated) {
+            ordersUpdated = true;
+          }
+        } catch (err) {
+          // Silent fail - will retry on next cycle
+        }
+      }
+
+      // Only reload orders if at least one was updated
+      if (ordersUpdated) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/orders`, { credentials: "include" });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setOrders(data.data);
+          }
+        } catch (err) {
+          // Silent fail
+        }
+      }
+    };
+
+    // Verify immediately after orders load
+    verifyPendingPayments();
+
+    // Then verify every 5 seconds
+    const interval = setInterval(verifyPendingPayments, 5000);
+
+    return () => clearInterval(interval);
+  }, [loading, orders.length]); // Re-run when loading completes or orders change
+
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingOrderId(orderId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to cancel order");
+      }
+
+      // Optimistically update local state so the dashboard doesn't feel clogged
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o))
+      );
+
+      toast({
+        title: "Order cancelled",
+        description: "We've cancelled this pending order. You won't be charged.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Cancellation failed",
+        description: err.message || "We couldn't cancel this order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCancellingOrderId(null);
     }
   };
 
@@ -147,7 +236,7 @@ export default function OrdersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge 
+                    <Badge
                       variant={
                         order.status === "ready_for_pickup" || order.status === "picked_up" 
                           ? "default" 
@@ -167,31 +256,54 @@ export default function OrdersPage() {
                         ? "Payment Pending"
                         : order.status}
                     </Badge>
-                    <div className="font-semibold">£{Number(order.total || 0).toFixed(2)}</div>
-                    {order.status === "awaiting_payment" ? (
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={() => handleRetryPayment(order.id)}
-                        disabled={retryingPayment === order.id}
-                      >
-                        {retryingPayment === order.id ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Retry Payment
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <Link href={`/orders/${order.id}`}>
-                        <Button variant="outline" size="sm">View Details</Button>
-                      </Link>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold">
+                        £{Number(order.total || 0).toFixed(2)}
+                      </div>
+                      {order.status === "awaiting_payment" ? (
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleRetryPayment(order.id)}
+                            disabled={retryingPayment === order.id || cancellingOrderId === order.id}
+                          >
+                            {retryingPayment === order.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                Retry Payment
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelOrder(order.id)}
+                            disabled={cancellingOrderId === order.id || retryingPayment === order.id}
+                          >
+                            {cancellingOrderId === order.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Cancelling...
+                              </>
+                            ) : (
+                              "Cancel"
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Link href={`/orders/${order.id}`}>
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   {order.pickup_location && (
                     <div className="text-xs text-muted-foreground mt-1">

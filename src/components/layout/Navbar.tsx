@@ -128,7 +128,6 @@ export function Navbar() {
               </Button>
             </Link>
           )}
-          
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -236,6 +235,14 @@ export function Navbar() {
                     className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   >
                     Our Story
+                  </Link>
+                  <Link
+                    href="/cart"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Cart
                   </Link>
                 </nav>
                 <div className="border-t border-border pt-4">

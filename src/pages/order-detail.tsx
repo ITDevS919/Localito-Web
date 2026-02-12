@@ -53,6 +53,7 @@ interface Order {
   points_used?: number;
   points_earned?: number;
   stripe_payment_intent_id?: string;
+  stripe_session_id?: string;
   platform_commission?: number;
   business_amount?: number; // Formerly retailer_amount
   retailer_amount?: number; // Legacy support
@@ -71,12 +72,35 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [loadingQR, setLoadingQR] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!orderId) return;
     loadOrder();
   }, [orderId]);
+
+  // Automatic payment verification on page load
+  useEffect(() => {
+    if (!order || order.status !== 'awaiting_payment') return;
+    if (!order.stripe_payment_intent_id && !order.stripe_session_id) return;
+
+    // Verify immediately on load, then poll every 3 seconds
+    verifyPaymentStatus();
+    const interval = setInterval(() => {
+      verifyPaymentStatus();
+    }, 3000);
+
+    // Stop polling after 2 minutes
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+    }, 120000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [order?.id, order?.status, order?.stripe_payment_intent_id, order?.stripe_session_id]);
 
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
@@ -170,10 +194,39 @@ export default function OrderDetailPage() {
         throw new Error(data.message || "Failed to load order");
       }
       setOrder(data.data);
+      setError(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Automatic payment verification function
+  const verifyPaymentStatus = async () => {
+    if (!orderId || !order) return;
+    if (order.status !== 'awaiting_payment') return;
+    if (!order.stripe_payment_intent_id && !order.stripe_session_id) return;
+
+    setVerifyingPayment(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/verify-payment`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success && data.data.orderUpdated) {
+        // Reload order to get updated status
+        await loadOrder();
+        toast({
+          title: "Payment verified!",
+          description: "Your payment has been confirmed and your order is being processed.",
+        });
+      }
+    } catch (err) {
+      // Silent fail - will retry automatically
+    } finally {
+      setVerifyingPayment(false);
     }
   };
 
@@ -300,8 +353,22 @@ export default function OrderDetailPage() {
             {getStatusBadge(order.status)}
           </div>
           
-          {/* Show payment required message for orders awaiting payment */}
-          {order.status === 'awaiting_payment' && (
+          {/* Show payment processing indicator if payment intent exists but status is still awaiting */}
+          {order.status === 'awaiting_payment' && (order.stripe_payment_intent_id || order.stripe_session_id) && (
+            <Alert className="mt-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <AlertTitle className="text-blue-800 dark:text-blue-200">Verifying Payment</AlertTitle>
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                We're automatically verifying your payment. This page will update as soon as your payment is confirmed.
+                {verifyingPayment && (
+                  <span className="ml-2 text-sm italic">Checking now...</span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Show payment required message for orders awaiting payment without payment intent */}
+          {order.status === 'awaiting_payment' && !order.stripe_payment_intent_id && !order.stripe_session_id && (
             <Alert variant="destructive" className="mt-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">

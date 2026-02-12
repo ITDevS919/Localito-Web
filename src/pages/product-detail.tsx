@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Star, StarHalf, Store, Heart } from "lucide-react";
 import { BackButton } from "@/components/navigation/BackButton";
+import { Loader2, Star, StarHalf, Store, Heart, MapPin, Navigation } from "lucide-react";
+import { getGoogleMapsDirectionsUrl, buildAddressString } from "@/lib/maps";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
@@ -39,8 +40,11 @@ interface Product {
   averageRating?: number;
   business_name?: string;
   business_username?: string;
+  business_address?: string | null;
   city?: string;
   postcode?: string;
+  business_latitude?: number | null;
+  business_longitude?: number | null;
 }
 
 interface Review {
@@ -554,10 +558,33 @@ export default function ProductDetailPage() {
                           {product.business_username && (
                             <p className="text-sm text-muted-foreground">@{product.business_username}</p>
                           )}
-                          {(product.city || product.postcode) && (
+                          {(product.city || product.postcode || product.business_address) && (
                             <p className="text-sm text-muted-foreground">
-                              {[product.city, product.postcode].filter(Boolean).join(", ")}
+                              {buildAddressString({
+                                business_address: product.business_address,
+                                city: product.city,
+                                postcode: product.postcode,
+                              }) || [product.city, product.postcode].filter(Boolean).join(", ")}
                             </p>
+                          )}
+                          {(product.business_address || product.city || product.postcode) && (
+                            <a
+                              href={getGoogleMapsDirectionsUrl(
+                                buildAddressString({
+                                  business_address: product.business_address,
+                                  city: product.city,
+                                  postcode: product.postcode,
+                                }),
+                                product.business_latitude,
+                                product.business_longitude
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-1"
+                            >
+                              <Navigation className="h-4 w-4" />
+                              Get directions
+                            </a>
                           )}
                         </div>
                       </div>

@@ -534,8 +534,9 @@ export default function SearchPage() {
                   </span>
                 )}
               </div>
-              <ScrollArea className="max-h-[min(70vh,520px)]">
-                <div className="space-y-1 pr-2">
+              <div className="h-[min(70vh,520px)] overflow-hidden" style={{ height: 'min(70vh, 520px)' }}>
+                <ScrollArea className="h-full">
+                  <div className="space-y-1 pr-2">
                   <Collapsible>
                     <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
                       Business type
@@ -738,8 +739,9 @@ export default function SearchPage() {
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
-                </div>
-              </ScrollArea>
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
           </aside>
 
