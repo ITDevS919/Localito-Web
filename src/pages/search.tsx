@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Filter, MapPin, Loader2, Search, Navigation, ChevronDown, ChevronRight } from "lucide-react";
+import { Filter, MapPin, Loader2, Search, Navigation, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -534,16 +534,15 @@ export default function SearchPage() {
                   </span>
                 )}
               </div>
-              <div className="h-[min(70vh,520px)] overflow-hidden" style={{ height: 'min(70vh, 520px)' }}>
-                <ScrollArea className="h-full">
-                  <div className="space-y-1 pr-2">
-                  <Collapsible>
+              <ScrollArea className="max-h-[min(70vh,520px)]">
+                <div className="space-y-0 pr-2 w-full">
+                  <Collapsible className="border-b border-border/30 last:border-b-0">
                     <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
                       Business type
                       <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="pb-3 pl-0 pt-1">
+                      <div className="pb-1.5 pl-0 pt-1">
                         <Select
                           value={businessTypeCategoryId || "all"}
                           onValueChange={(value) => {
@@ -566,13 +565,13 @@ export default function SearchPage() {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <Collapsible>
+                  <Collapsible className="border-b border-border/30 last:border-b-0">
                     <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
                       Categories
                       <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="pb-3 pt-1 space-y-0.5">
+                      <div className="pb-1.5 pt-1 space-y-0.5 max-h-[300px] overflow-y-auto">
                         {loadingCategories ? (
                           <div className="flex justify-center py-3">
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -649,13 +648,13 @@ export default function SearchPage() {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <Collapsible>
+                  <Collapsible className="border-b border-border/30 last:border-b-0">
                     <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
                       Quick filters
                       <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="pb-3 pt-1 flex flex-wrap gap-2">
+                      <div className="pb-1.5 pt-1 flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => handleQuickFilter("nearest")}
@@ -693,13 +692,13 @@ export default function SearchPage() {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <Collapsible>
+                  <Collapsible className="border-b border-border/30 last:border-b-0">
                     <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
                       Price range
                       <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="pb-3 pt-1">
+                      <div className="pb-1.5 pt-1">
                         <Slider
                           value={priceRange}
                           onValueChange={(vals) => setPriceRange([vals[0], vals[1]])}
@@ -715,13 +714,13 @@ export default function SearchPage() {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <Collapsible>
+                  <Collapsible className="border-b border-border/30 last:border-b-0">
                     <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md px-1 [&[data-state=open]>svg]:rotate-90">
                       Location
                       <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="pb-3 pt-1">
+                      <div className="pb-1.5 pt-1">
                         <div className="relative">
                           <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
@@ -739,9 +738,8 @@ export default function SearchPage() {
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
-                  </div>
-                </ScrollArea>
-              </div>
+                </div>
+              </ScrollArea>
             </div>
           </aside>
 
