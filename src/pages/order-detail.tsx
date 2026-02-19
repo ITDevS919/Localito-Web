@@ -81,35 +81,8 @@ export default function OrderDetailPage() {
     loadOrder();
   }, [orderId]);
 
-  // Automatic payment verification on page load
-  useEffect(() => {
-    // Reset verification flag when order changes
-    paymentVerifiedRef.current = false;
-    
-    if (!order || order.status !== 'awaiting_payment') return;
-    if (!order.stripe_payment_intent_id && !order.stripe_session_id) return;
-
-    // Verify immediately on load, then poll every 3 seconds
-    verifyPaymentStatus();
-    const interval = setInterval(() => {
-      // Check if order status changed before polling again
-      if (order.status !== 'awaiting_payment' || paymentVerifiedRef.current) {
-        clearInterval(interval);
-        return;
-      }
-      verifyPaymentStatus();
-    }, 3000);
-
-    // Stop polling after 2 minutes
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-    }, 120000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [order?.id, order?.status, order?.stripe_payment_intent_id, order?.stripe_session_id]);
+  // No polling - webhooks handle payment verification (official Stripe approach)
+  // Success page verification happens server-side on redirect
 
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
@@ -121,9 +94,20 @@ export default function OrderDetailPage() {
         title: "Payment successful",
         description: "Your order has been confirmed. You'll receive a confirmation email shortly.",
       });
-      // Reload order to get updated payment status
+      
+      // Reload order immediately, then retry a few times to catch webhook processing
+      // This is not polling - just a few retries after successful payment redirect
       if (orderId) {
         loadOrder();
+        
+        // Retry loading order a few times with delays to catch webhook processing
+        // Webhooks usually process within 1-3 seconds, so we check a few times
+        const retries = [1000, 2000, 3000]; // 1s, 2s, 3s after initial load
+        retries.forEach((delay) => {
+          setTimeout(() => {
+            loadOrder();
+          }, delay);
+        });
       }
       
       // Check if there are more payments to process (multi-business scenario)
@@ -211,48 +195,7 @@ export default function OrderDetailPage() {
     }
   };
 
-  // Automatic payment verification function
-  const verifyPaymentStatus = async () => {
-    if (!orderId || !order) return;
-    if (order.status !== 'awaiting_payment') return;
-    if (!order.stripe_payment_intent_id && !order.stripe_session_id) return;
-    // Prevent duplicate verification if already verified
-    if (paymentVerifiedRef.current) return;
-
-    setVerifyingPayment(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/verify-payment`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      const data = await res.json();
-      
-      if (data.success) {
-        // Only reload and show toast if order was actually updated
-        if (data.data.orderUpdated && !paymentVerifiedRef.current) {
-          // Mark as verified to prevent duplicate toasts
-          paymentVerifiedRef.current = true;
-          // Reload order to get updated status
-          await loadOrder();
-          // Show toast only once
-          toast({
-            title: "Payment verified!",
-            description: "Your payment has been confirmed and your order is being processed.",
-          });
-          // Stop polling immediately - the useEffect will clean up when order.status changes
-          return;
-        }
-        // If payment status is 'pending' (processing, requires_action, etc.), 
-        // don't show any notification - just continue polling silently
-        // The Alert component already shows the verification status
-      }
-    } catch (err) {
-      // Silent fail - will retry automatically
-      // Don't show error toast to avoid annoying the user
-    } finally {
-      setVerifyingPayment(false);
-    }
-  };
+  // Payment verification removed - handled by webhooks (official Stripe approach)
 
   const retryPayment = async () => {
     if (!orderId) return;

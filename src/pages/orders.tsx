@@ -89,57 +89,8 @@ export default function OrdersPage() {
     }
   };
 
-  // Automatically verify payment status for awaiting_payment orders
-  useEffect(() => {
-    if (loading || orders.length === 0) return;
-
-    const verifyPendingPayments = async () => {
-      const pendingOrders = orders.filter(
-        (o) => o.status === 'awaiting_payment' && (o.stripe_payment_intent_id || o.stripe_session_id)
-      );
-
-      if (pendingOrders.length === 0) return;
-
-      let ordersUpdated = false;
-
-      // Verify each pending order
-      for (const order of pendingOrders) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/orders/${order.id}/verify-payment`, {
-            method: 'POST',
-            credentials: 'include',
-          });
-          const data = await res.json();
-          if (data.success && data.data.orderUpdated) {
-            ordersUpdated = true;
-          }
-        } catch (err) {
-          // Silent fail - will retry on next cycle
-        }
-      }
-
-      // Only reload orders if at least one was updated
-      if (ordersUpdated) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/orders`, { credentials: "include" });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            setOrders(data.data);
-          }
-        } catch (err) {
-          // Silent fail
-        }
-      }
-    };
-
-    // Verify immediately after orders load
-    verifyPendingPayments();
-
-    // Then verify every 5 seconds
-    const interval = setInterval(verifyPendingPayments, 5000);
-
-    return () => clearInterval(interval);
-  }, [loading, orders.length]); // Re-run when loading completes or orders change
+  // No polling - webhooks handle payment verification (official Stripe approach)
+  // Orders will update automatically when webhooks process payments
 
   const handleCancelOrder = async (orderId: string) => {
     setCancellingOrderId(orderId);
