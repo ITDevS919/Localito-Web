@@ -51,14 +51,16 @@ function generateHourlySlots(startTime: string, endTime: string): string[] {
   return slots;
 }
 
+// UI ordering: Monday → Sunday to match working week expectations.
+// The underlying values still use JS Date.getDay() semantics (0 = Sunday ... 6 = Saturday).
 const DAYS_OF_WEEK = [
-  { value: 0, label: "Sunday" },
   { value: 1, label: "Monday" },
   { value: 2, label: "Tuesday" },
   { value: 3, label: "Wednesday" },
   { value: 4, label: "Thursday" },
   { value: 5, label: "Friday" },
   { value: 6, label: "Saturday" },
+  { value: 0, label: "Sunday" },
 ];
 
 export default function BusinessAvailabilityPage() {
@@ -529,7 +531,7 @@ export default function BusinessAvailabilityPage() {
               Specific time slots
             </CardTitle>
             <CardDescription>
-              Offer only certain hours (e.g. 1pm and 4pm). Uncheck slots you don&apos;t want; customers will only see checked times. Save schedule first, then set slots here.
+              This is your weekly diary. Please click on any slots for bookings already made outside of localito. Blue slots means available to book. Please update this regularly to avoid double booking.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

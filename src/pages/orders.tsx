@@ -201,11 +201,12 @@ export default function OrdersPage() {
               orders.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-xl border border-border p-4 flex justify-between items-center hover:bg-secondary/50 transition-colors"
+                  className="rounded-xl border border-border p-4 hover:bg-secondary/50 transition-colors space-y-3"
                 >
-                  <div className="flex-1">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="flex-1 min-w-0">
                     <Link href={`/orders/${order.id}`}>
-                      <div className="font-semibold hover:underline cursor-pointer">
+                      <div className="font-semibold hover:underline cursor-pointer break-words">
                         {(() => {
                           // Get first product or service name
                           const firstItem = order.items && order.items.length > 0 
@@ -232,10 +233,11 @@ export default function OrdersPage() {
                       </div>
                     </Link>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(order.created_at).toLocaleString()} • {order.business_name || order.retailer_name}
+                      {new Date(order.created_at).toLocaleString()} •{" "}
+                      <span className="break-words">{order.business_name || order.retailer_name}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap md:flex-nowrap md:justify-end">
                     <Badge
                       variant={
                         order.status === "ready_for_pickup" || order.status === "picked_up" 
@@ -256,7 +258,7 @@ export default function OrdersPage() {
                         ? "Payment Pending"
                         : order.status}
                     </Badge>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap md:flex-nowrap justify-end">
                       <div className="font-semibold">
                         £{Number(order.total || 0).toFixed(2)}
                       </div>
@@ -305,13 +307,14 @@ export default function OrdersPage() {
                       )}
                     </div>
                   </div>
+                  </div>
                   {order.pickup_location && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground">
                       Pickup: {order.pickup_location}
                     </div>
                   )}
                   {order.points_earned && order.points_earned > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Coins className="h-3 w-3" />
                       Earned £{Number(order.points_earned).toFixed(2)} cashback
                     </div>

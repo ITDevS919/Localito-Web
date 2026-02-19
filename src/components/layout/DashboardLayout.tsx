@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store, MessageSquare, Wallet, MessageCircle, Calendar, QrCode } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Settings, LogOut, Store, MessageSquare, Wallet, MessageCircle, Calendar, QrCode, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ASSETS } from "@/lib/product";
@@ -7,7 +7,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CreateProductModal } from "@/components/product/CreateProductModal";
 import { CreateServiceModal } from "@/components/product/CreateServiceModal";
 import { TourProvider } from "@/contexts/TourContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,6 +25,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [createServiceOpen, setCreateServiceOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu automatically when viewport becomes desktop size
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (("matches" in e ? e.matches : mq.matches) && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    // Initial check
+    handler(mq);
+    mq.addEventListener("change", handler as (ev: MediaQueryListEvent) => void);
+    return () => mq.removeEventListener("change", handler as (ev: MediaQueryListEvent) => void);
+  }, [mobileMenuOpen]);
 
   const businessName = user?.username ?? "Business";
   const businessEmail = user?.email ?? "—";
@@ -114,20 +136,82 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64">
-        <header className="h-16 bg-background border-b border-border px-8 flex items-center justify-between sticky top-0 z-10">
+        <header className="h-16 bg-background border-b border-border px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
            <h2 className="font-heading font-semibold text-lg">{getPageTitle()}</h2>
-           {showCreateButton && (
-             <div className="flex gap-2">
-               <Button size="sm" variant="outline" onClick={() => setCreateServiceOpen(true)}>
-               Create Service
-             </Button>
-               <Button size="sm" onClick={() => setCreateProductOpen(true)}>
-                 Create New Product
-               </Button>
-             </div>
-           )}
+           <div className="flex items-center gap-3">
+             {/* Create buttons – desktop only */}
+             {showCreateButton && (
+               <div className="hidden md:flex gap-2">
+                 <Button size="sm" variant="outline" onClick={() => setCreateServiceOpen(true)}>
+                   Create Service
+                 </Button>
+                 <Button size="sm" onClick={() => setCreateProductOpen(true)}>
+                   Create New Product
+                 </Button>
+               </div>
+             )}
+             {/* Mobile menu (sheet) */}
+             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+               <SheetTrigger asChild>
+                 <Button
+                   variant="outline"
+                   size="icon"
+                   className="md:hidden"
+                   aria-label="Open menu"
+                 >
+                   <Menu className="h-5 w-5" />
+                 </Button>
+               </SheetTrigger>
+               <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col">
+                 <SheetHeader>
+                   <SheetTitle className="text-left">Menu</SheetTitle>
+                 </SheetHeader>
+                 <div className="h-px bg-border my-3" />
+                 <div className="flex-1 flex flex-col gap-4">
+                   <nav className="flex flex-col gap-1">
+                     {navItems.map((item) => {
+                       const Icon = item.icon;
+                       const isActive = location === item.href;
+                       return (
+                         <Link
+                           key={item.href}
+                           href={item.href}
+                           onClick={() => setMobileMenuOpen(false)}
+                         >
+                           <div
+                             className={cn(
+                               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                               isActive
+                                 ? "bg-primary text-primary-foreground"
+                                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                             )}
+                           >
+                             <Icon className="h-4 w-4" />
+                             {item.label}
+                           </div>
+                         </Link>
+                       );
+                     })}
+                   </nav>
+                   <div className="border-t border-border pt-4 mt-2">
+                     <Button
+                       variant="ghost"
+                       className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                       onClick={() => {
+                         setMobileMenuOpen(false);
+                         logout();
+                       }}
+                     >
+                       <LogOut className="mr-2 h-4 w-4" />
+                       Log Out
+                     </Button>
+                   </div>
+                 </div>
+               </SheetContent>
+             </Sheet>
+           </div>
         </header>
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {children}
         </div>
       </main>
