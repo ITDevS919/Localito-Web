@@ -3,7 +3,15 @@ import { AdminDashboardLayout } from "@/components/layout/AdminDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, UserCircle, Search, Mail, Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, UserCircle, Search, Mail, Calendar, Building2, Trash2 } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -28,6 +36,12 @@ export default function AdminCustomersPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const limit = 20;
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [businessName, setBusinessName] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setSearchDebounced(search.trim()), 300);
@@ -68,6 +82,83 @@ export default function AdminCustomersPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConvertToBusiness = async () => {
+    if (!selectedCustomer) return;
+
+    setActionLoading(true);
+    setActionError(null);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${selectedCustomer.id}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          role: "business",
+          businessName: businessName.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to convert customer to business");
+      }
+
+      // Close dialog and reload customers
+      setConvertDialogOpen(false);
+      setSelectedCustomer(null);
+      setBusinessName("");
+      await loadCustomers();
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!selectedCustomer) return;
+
+    setActionLoading(true);
+    setActionError(null);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${selectedCustomer.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete customer account");
+      }
+
+      // Close dialog and reload customers
+      setDeleteDialogOpen(false);
+      setSelectedCustomer(null);
+      await loadCustomers();
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openConvertDialog = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setBusinessName(customer.username || "");
+    setActionError(null);
+    setConvertDialogOpen(true);
+  };
+
+  const openDeleteDialog = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setActionError(null);
+    setDeleteDialogOpen(true);
   };
 
   return (
@@ -122,6 +213,7 @@ export default function AdminCustomersPage() {
                         <th className="text-left p-3 font-medium">Username</th>
                         <th className="text-left p-3 font-medium">Email</th>
                         <th className="text-left p-3 font-medium">Joined</th>
+                        <th className="text-right p-3 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -141,6 +233,28 @@ export default function AdminCustomersPage() {
                                   year: "numeric",
                                 })
                               : "—"}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openConvertDialog(c)}
+                                className="h-8"
+                              >
+                                <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                                Convert to Business
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openDeleteDialog(c)}
+                                className="h-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                Delete
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -176,6 +290,139 @@ export default function AdminCustomersPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Convert to Business Dialog */}
+        <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Convert Customer to Business</DialogTitle>
+              <DialogDescription>
+                This will change the user's role from customer to business. A business record will be created, and they'll be able to access the business dashboard.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {selectedCustomer && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Customer:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCustomer.username} ({selectedCustomer.email})
+                  </p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <label htmlFor="business-name" className="text-sm font-medium">
+                  Business Name (optional)
+                </label>
+                <Input
+                  id="business-name"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Leave empty to use username"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If not provided, the username will be used as the business name.
+                </p>
+              </div>
+              {actionError && (
+                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                  {actionError}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setConvertDialogOpen(false);
+                  setSelectedCustomer(null);
+                  setBusinessName("");
+                  setActionError(null);
+                }}
+                disabled={actionLoading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleConvertToBusiness} disabled={actionLoading}>
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Converting...
+                  </>
+                ) : (
+                  "Convert to Business"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Account Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Customer Account</DialogTitle>
+              <DialogDescription>
+                This will permanently delete the customer account and all associated data (cart items, wishlist). Orders and messages will be preserved for historical records.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {selectedCustomer && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Customer to delete:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCustomer.username} ({selectedCustomer.email})
+                  </p>
+                </div>
+              )}
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <p className="font-medium mb-1">Warning: This action cannot be undone.</p>
+                <p className="text-xs">
+                  The following will be deleted:
+                  <br />• User account
+                  <br />• Cart items
+                  <br />• Wishlist items
+                  <br />
+                  <br />
+                  The following will be preserved:
+                  <br />• Order history
+                  <br />• Message history
+                </p>
+              </div>
+              {actionError && (
+                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                  {actionError}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setSelectedCustomer(null);
+                  setActionError(null);
+                }}
+                disabled={actionLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Account"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminDashboardLayout>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRoute, Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +74,7 @@ export default function OrderDetailPage() {
   const [loadingQR, setLoadingQR] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const { toast } = useToast();
+  const paymentVerifiedRef = useRef(false); // Track if payment has been verified to prevent duplicate toasts
 
   useEffect(() => {
     if (!orderId) return;
@@ -82,12 +83,20 @@ export default function OrderDetailPage() {
 
   // Automatic payment verification on page load
   useEffect(() => {
+    // Reset verification flag when order changes
+    paymentVerifiedRef.current = false;
+    
     if (!order || order.status !== 'awaiting_payment') return;
     if (!order.stripe_payment_intent_id && !order.stripe_session_id) return;
 
     // Verify immediately on load, then poll every 3 seconds
     verifyPaymentStatus();
     const interval = setInterval(() => {
+      // Check if order status changed before polling again
+      if (order.status !== 'awaiting_payment' || paymentVerifiedRef.current) {
+        clearInterval(interval);
+        return;
+      }
       verifyPaymentStatus();
     }, 3000);
 
@@ -207,6 +216,8 @@ export default function OrderDetailPage() {
     if (!orderId || !order) return;
     if (order.status !== 'awaiting_payment') return;
     if (!order.stripe_payment_intent_id && !order.stripe_session_id) return;
+    // Prevent duplicate verification if already verified
+    if (paymentVerifiedRef.current) return;
 
     setVerifyingPayment(true);
     try {
@@ -215,16 +226,29 @@ export default function OrderDetailPage() {
         credentials: 'include',
       });
       const data = await res.json();
-      if (data.success && data.data.orderUpdated) {
-        // Reload order to get updated status
-        await loadOrder();
-        toast({
-          title: "Payment verified!",
-          description: "Your payment has been confirmed and your order is being processed.",
-        });
+      
+      if (data.success) {
+        // Only reload and show toast if order was actually updated
+        if (data.data.orderUpdated && !paymentVerifiedRef.current) {
+          // Mark as verified to prevent duplicate toasts
+          paymentVerifiedRef.current = true;
+          // Reload order to get updated status
+          await loadOrder();
+          // Show toast only once
+          toast({
+            title: "Payment verified!",
+            description: "Your payment has been confirmed and your order is being processed.",
+          });
+          // Stop polling immediately - the useEffect will clean up when order.status changes
+          return;
+        }
+        // If payment status is 'pending' (processing, requires_action, etc.), 
+        // don't show any notification - just continue polling silently
+        // The Alert component already shows the verification status
       }
     } catch (err) {
       // Silent fail - will retry automatically
+      // Don't show error toast to avoid annoying the user
     } finally {
       setVerifyingPayment(false);
     }
