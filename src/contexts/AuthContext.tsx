@@ -108,14 +108,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string, options?: { redirect?: string }) => {
+  const login = async (
+    username: string,
+    password: string,
+    options?: { redirect?: string; role?: UserRole }
+  ) => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, role: options?.role }),
     });
 
     const data = await response.json();

@@ -75,7 +75,7 @@ export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) 
     setLoading(true);
     try {
       if (variant === "login") {
-        await login(username, password, redirect ? { redirect } : undefined);
+        await login(username, password, redirect ? { redirect, role } : { role });
       } else {
         // Include business data if signing up as business
         const businessData =
