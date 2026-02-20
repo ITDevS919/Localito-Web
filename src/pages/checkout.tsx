@@ -226,6 +226,13 @@ export default function CheckoutPage() {
           ...serviceItems.map((i) => i.business_id),
         ]),
       ];
+      const businessTotals: Record<string, number> = {};
+      items.forEach((i) => {
+        businessTotals[i.business_id] = (businessTotals[i.business_id] || 0) + i.price * i.quantity;
+      });
+      serviceItems.forEach((i) => {
+        businessTotals[i.business_id] = (businessTotals[i.business_id] || 0) + i.price * i.quantity;
+      });
       const res = await fetch(`${API_BASE_URL}/discount-codes/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -234,6 +241,7 @@ export default function CheckoutPage() {
           code: discountCode.trim(),
           orderTotal: total,
           businessIds,
+          businessTotals,
         }),
       });
 

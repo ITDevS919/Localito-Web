@@ -1,17 +1,27 @@
 import { useEffect, useState } from "react";
 import { AdminDashboardLayout } from "@/components/layout/AdminDashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRequireRole } from "@/hooks/useRequireRole";
-import { Plus, Loader2, Tag, Trash2, Edit, ChevronDown, Store } from "lucide-react";
+import { Plus, Loader2, Tag, Trash2, Edit, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -55,17 +65,21 @@ export default function AdminDiscountCodesPage() {
     usageLimit: "",
     validUntil: "",
     participatingBusinessIds: [] as string[],
+    isActive: true,
   });
   const [businesses, setBusinesses] = useState<BusinessOption[]>([]);
   const [businessesLoading, setBusinessesLoading] = useState(false);
   const [participatingOpen, setParticipatingOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCodes();
   }, []);
 
   useEffect(() => {
-    if (isDialogOpen && businesses.length === 0) {
+    if ((isDialogOpen || editingId) && businesses.length === 0) {
       setBusinessesLoading(true);
       fetch(`${API_BASE_URL}/admin/businesses?limit=500&status=approved`, { credentials: "include" })
         .then((res) => res.json())
@@ -82,7 +96,7 @@ export default function AdminDiscountCodesPage() {
         .catch(() => {})
         .finally(() => setBusinessesLoading(false));
     }
-  }, [isDialogOpen]);
+  }, [isDialogOpen, editingId]);
 
   const fetchCodes = async () => {
     try {
@@ -113,44 +127,111 @@ export default function AdminDiscountCodesPage() {
     }
     setSubmitting(true);
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/admin/discount-codes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          code: formData.code,
-          description: formData.description || null,
-          discountType: formData.discountType,
-          discountValue: parseFloat(formData.discountValue),
-          minPurchaseAmount: parseFloat(formData.minPurchaseAmount) || 0,
-          maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : null,
-          usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : null,
-          validUntil: formData.validUntil || null,
-          participatingBusinessIds: formData.participatingBusinessIds,
-        }),
-      });
+    const payload = {
+      code: formData.code,
+      description: formData.description || null,
+      discountType: formData.discountType,
+      discountValue: parseFloat(formData.discountValue),
+      minPurchaseAmount: parseFloat(formData.minPurchaseAmount) || 0,
+      maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : null,
+      usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : null,
+      validUntil: formData.validUntil || null,
+      participatingBusinessIds: formData.participatingBusinessIds,
+      ...(editingId && { isActive: formData.isActive }),
+    };
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast({
-          title: "Discount code created",
-          description: "The discount code has been created successfully",
+    try {
+      if (editingId) {
+        const res = await fetch(`${API_BASE_URL}/admin/discount-codes/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
         });
-        setIsDialogOpen(false);
-        resetForm();
-        fetchCodes();
+        const data = await res.json();
+        if (res.ok && data.success) {
+          toast({ title: "Discount code updated", description: "Changes have been saved." });
+          setEditingId(null);
+          setIsDialogOpen(false);
+          resetForm();
+          fetchCodes();
+        } else {
+          throw new Error(data.message || "Failed to update discount code");
+        }
       } else {
-        throw new Error(data.message || "Failed to create discount code");
+        const res = await fetch(`${API_BASE_URL}/admin/discount-codes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          toast({
+            title: "Discount code created",
+            description: "The discount code has been created successfully",
+          });
+          setIsDialogOpen(false);
+          resetForm();
+          fetchCodes();
+        } else {
+          throw new Error(data.message || "Failed to create discount code");
+        }
       }
     } catch (err: any) {
       toast({
         title: "Error",
-        description: err.message || "Failed to create discount code",
+        description: err.message || "Failed to save discount code",
         variant: "destructive",
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEdit = (code: DiscountCode) => {
+    setFormData({
+      code: code.code,
+      description: code.description || "",
+      discountType: code.discount_type,
+      discountValue: String(code.discount_value),
+      minPurchaseAmount: String(code.min_purchase_amount ?? 0),
+      maxDiscountAmount: code.max_discount_amount != null ? String(code.max_discount_amount) : "",
+      usageLimit: code.usage_limit != null ? String(code.usage_limit) : "",
+      validUntil: code.valid_until
+        ? new Date(code.valid_until).toISOString().slice(0, 16)
+        : "",
+      participatingBusinessIds: Array.isArray(code.participating_business_ids) ? code.participating_business_ids : [],
+      isActive: code.is_active !== false,
+    });
+    setEditingId(code.id);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/discount-codes/${deleteId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast({ title: "Discount code removed", description: "The discount code has been deleted." });
+        setDeleteId(null);
+        fetchCodes();
+      } else {
+        throw new Error(data.message || "Failed to delete discount code");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Could not delete discount code",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -165,6 +246,7 @@ export default function AdminDiscountCodesPage() {
       usageLimit: "",
       validUntil: "",
       participatingBusinessIds: [],
+      isActive: true,
     });
   };
 
@@ -185,19 +267,30 @@ export default function AdminDiscountCodesPage() {
             <h1 className="text-3xl font-bold">Discount Codes</h1>
             <p className="text-muted-foreground">Manage discount codes and promotions</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
+          <Dialog
+            open={isDialogOpen || !!editingId}
+            onOpenChange={(open) => {
+              if (!open) {
+                setIsDialogOpen(false);
+                setEditingId(null);
+                resetForm();
+              }
+            }}
+          >
             <DialogTrigger asChild>
-              <Button>
+              <Button
+                onClick={() => {
+                  setEditingId(null);
+                  setIsDialogOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Discount Code
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Create Discount Code</DialogTitle>
+                <DialogTitle>{editingId ? "Edit Discount Code" : "Create Discount Code"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -310,6 +403,21 @@ export default function AdminDiscountCodesPage() {
                   </div>
                 </div>
 
+                {editingId && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, isActive: checked === true })
+                      }
+                    />
+                    <Label htmlFor="isActive" className="font-normal cursor-pointer">
+                      Active (inactive codes cannot be used)
+                    </Label>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Participating Businesses *</Label>
                   <p className="text-sm text-muted-foreground">
@@ -373,6 +481,7 @@ export default function AdminDiscountCodesPage() {
                     variant="outline"
                     onClick={() => {
                       setIsDialogOpen(false);
+                      setEditingId(null);
                       resetForm();
                     }}
                   >
@@ -382,8 +491,10 @@ export default function AdminDiscountCodesPage() {
                     {submitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creating...
+                        {editingId ? "Saving..." : "Creating..."}
                       </>
+                    ) : editingId ? (
+                      "Save Changes"
                     ) : (
                       "Create Code"
                     )}
@@ -409,10 +520,10 @@ export default function AdminDiscountCodesPage() {
             {codes.map((code) => (
               <Card key={code.id}>
                 <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Tag className="h-5 w-5" />
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Tag className="h-5 w-5 shrink-0" />
                         <span className="text-xl font-bold">{code.code}</span>
                         <Badge variant={code.is_active ? "default" : "secondary"}>
                           {code.is_active ? "Active" : "Inactive"}
@@ -459,12 +570,65 @@ export default function AdminDiscountCodesPage() {
                         )}
                       </div>
                     </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEdit(code)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeleteId(code.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete discount code?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove the discount code. This cannot be undone. You cannot
+                delete a code that has already been used on any order.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminDashboardLayout>
   );
