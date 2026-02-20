@@ -100,10 +100,8 @@ export default function BusinessOrderDetailPage() {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       pending: { variant: "outline", label: "Pending" },
       processing: { variant: "default", label: "Processing" },
-      shipped: { variant: "default", label: "Shipped" },
-      delivered: { variant: "default", label: "Delivered" },
-      ready_for_pickup: { variant: "default", label: "Ready for Pickup" },
-      picked_up: { variant: "default", label: "Picked Up" },
+      ready: { variant: "default", label: "Ready" },
+      complete: { variant: "default", label: "Complete" },
       cancelled: { variant: "destructive", label: "Cancelled" },
     };
     const config = variants[status] || variants.pending;
@@ -161,10 +159,8 @@ export default function BusinessOrderDetailPage() {
               <SelectContent>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
-                <SelectItem value="picked_up">Picked Up</SelectItem>
-                {/* <SelectItem value="shipped">Shipped</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem> */}
+                <SelectItem value="ready">Ready</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>

@@ -94,10 +94,8 @@ export default function BusinessOrdersPage() {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: any; label: string }> = {
       pending: { variant: "outline", icon: Clock, label: "Pending" },
       processing: { variant: "default", icon: Clock, label: "Processing" },
-      ready_for_pickup: { variant: "default", icon: CheckCircle2, label: "Ready for Pickup" },
-      picked_up: { variant: "default", icon: CheckCircle2, label: "Picked Up" },
-      shipped: { variant: "default", icon: CheckCircle2, label: "Shipped" },
-      delivered: { variant: "default", icon: CheckCircle2, label: "Delivered" },
+      ready: { variant: "default", icon: CheckCircle2, label: "Ready" },
+      complete: { variant: "default", icon: CheckCircle2, label: "Complete" },
       cancelled: { variant: "destructive", icon: XCircle, label: "Cancelled" },
     };
     const config = variants[status] || variants.pending;
@@ -247,10 +245,8 @@ export default function BusinessOrdersPage() {
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="processing">Processing</SelectItem>
-                            <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
-                            <SelectItem value="picked_up">Picked Up</SelectItem>
-                            {/* <SelectItem value="shipped">Shipped</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem> */}
+                            <SelectItem value="ready">Ready</SelectItem>
+                            <SelectItem value="complete">Complete</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>

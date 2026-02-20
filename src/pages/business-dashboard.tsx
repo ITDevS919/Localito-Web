@@ -78,8 +78,8 @@ export default function BusinessDashboard() {
     const statusColors: Record<string, string> = {
       pending: "bg-yellow-600",
       processing: "bg-blue-600",
-      shipped: "bg-purple-600",
-      delivered: "bg-green-600",
+      ready: "bg-blue-600",
+      complete: "bg-green-600",
       cancelled: "bg-red-600",
     };
     return (

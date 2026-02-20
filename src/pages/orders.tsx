@@ -191,7 +191,7 @@ export default function OrdersPage() {
                   <div className="flex items-center gap-3 flex-wrap md:flex-nowrap md:justify-end">
                     <Badge
                       variant={
-                        order.status === "ready_for_pickup" || order.status === "picked_up" 
+                        order.status === "ready" || order.status === "complete" 
                           ? "default" 
                           : order.status === "cancelled" 
                           ? "destructive" 
@@ -201,10 +201,10 @@ export default function OrdersPage() {
                       }
                       className="capitalize"
                     >
-                      {order.status === "ready_for_pickup" 
-                        ? "Ready for Pickup" 
-                        : order.status === "picked_up"
-                        ? "Picked Up"
+                      {order.status === "ready" 
+                        ? "Ready" 
+                        : order.status === "complete"
+                        ? "Complete"
                         : order.status === "awaiting_payment"
                         ? "Payment Pending"
                         : order.status}

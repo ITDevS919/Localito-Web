@@ -26,6 +26,7 @@ interface Order {
   business_id: string; // Formerly retailer_id
   retailer_id?: string; // Legacy support
   status: string;
+  booking_status?: string;
   total: number;
   created_at: string;
   updated_at: string;
@@ -74,17 +75,18 @@ export default function AdminOrderDetailPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (order: Order) => {
+    const isComplete = order.status === "complete" || order.booking_status === "completed";
+    const status = isComplete ? "complete" : order.status;
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      awaiting_payment: { label: "Awaiting Payment", variant: "destructive" },
       pending: { label: "Pending", variant: "outline" },
       processing: { label: "Processing", variant: "default" },
-      ready_for_pickup: { label: "Ready for Pickup", variant: "default" },
-      picked_up: { label: "Picked Up", variant: "secondary" },
-      shipped: { label: "Shipped", variant: "default" },
-      delivered: { label: "Delivered", variant: "secondary" },
+      ready: { label: "Ready", variant: "default" },
+      complete: { label: "Complete", variant: "secondary" },
       cancelled: { label: "Cancelled", variant: "destructive" },
     };
-    const config = statusConfig[status] || { label: status, variant: "outline" };
+    const config = statusConfig[status] || { label: order.status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -138,7 +140,7 @@ export default function AdminOrderDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <div className="mt-1">{getStatusBadge(order.status)}</div>
+                <div className="mt-1">{getStatusBadge(order)}</div>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Order Date</p>

@@ -261,10 +261,8 @@ export default function OrderDetailPage() {
       awaiting_payment: { variant: "destructive", label: "Awaiting Payment" },
       pending: { variant: "outline", label: "Pending" },
       processing: { variant: "default", label: "Processing" },
-      shipped: { variant: "default", label: "Shipped" },
-      delivered: { variant: "default", label: "Delivered" },
-      ready_for_pickup: { variant: "default", label: "Ready for Pickup" },
-      picked_up: { variant: "default", label: "Picked Up" },
+      ready: { variant: "default", label: "Ready" },
+      complete: { variant: "default", label: "Complete" },
       cancelled: { variant: "destructive", label: "Cancelled" },
     };
     const config = variants[status] || variants.pending;
@@ -558,7 +556,7 @@ export default function OrderDetailPage() {
                   <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                     <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-semibold text-blue-900 dark:text-blue-100">Service Booking</p>
+                      <p className="font-semibold text-blue-900 dark:text-blue-100">Booking/ Pick up time</p>
                       <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                         {new Date(order.booking_date).toLocaleDateString("en-GB", {
                           weekday: "long",

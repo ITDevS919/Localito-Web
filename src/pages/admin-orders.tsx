@@ -15,6 +15,7 @@ interface Order {
   business_id: string; // Formerly retailer_id
   retailer_id?: string; // Legacy support
   status: string;
+  booking_status?: string;
   total: number;
   created_at: string;
   updated_at: string;
@@ -74,17 +75,18 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (order: Order) => {
+    const isComplete = order.status === "complete" || order.booking_status === "completed";
+    const status = isComplete ? "complete" : order.status;
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      awaiting_payment: { label: "Awaiting Payment", variant: "destructive" },
       pending: { label: "Pending", variant: "outline" },
       processing: { label: "Processing", variant: "default" },
-      ready_for_pickup: { label: "Ready for Pickup", variant: "default" },
-      picked_up: { label: "Picked Up", variant: "secondary" },
-      shipped: { label: "Shipped", variant: "default" },
-      delivered: { label: "Delivered", variant: "secondary" },
+      ready: { label: "Ready", variant: "default" },
+      complete: { label: "Complete", variant: "secondary" },
       cancelled: { label: "Cancelled", variant: "destructive" },
     };
-    const config = statusConfig[status] || { label: status, variant: "outline" };
+    const config = statusConfig[status] || { label: order.status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -192,13 +194,19 @@ export default function AdminOrdersPage() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2">
+        {/* Filters - order status: awaiting_payment > pending > processing > cancelled > ready > complete */}
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={filter === "all" ? "default" : "outline"}
             onClick={() => setFilter("all")}
           >
             All Orders
+          </Button>
+          <Button
+            variant={filter === "awaiting_payment" ? "default" : "outline"}
+            onClick={() => setFilter("awaiting_payment")}
+          >
+            Awaiting Payment
           </Button>
           <Button
             variant={filter === "pending" ? "default" : "outline"}
@@ -213,10 +221,16 @@ export default function AdminOrdersPage() {
             Processing
           </Button>
           <Button
-            variant={filter === "delivered" ? "default" : "outline"}
-            onClick={() => setFilter("delivered")}
+            variant={filter === "ready" ? "default" : "outline"}
+            onClick={() => setFilter("ready")}
           >
-            Delivered
+            Ready
+          </Button>
+          <Button
+            variant={filter === "complete" ? "default" : "outline"}
+            onClick={() => setFilter("complete")}
+          >
+            Complete
           </Button>
           <Button
             variant={filter === "cancelled" ? "default" : "outline"}
@@ -256,7 +270,7 @@ export default function AdminOrdersPage() {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         Order #{order.id.substring(0, 8)}
-                        {getStatusBadge(order.status)}
+                        {getStatusBadge(order)}
                       </CardTitle>
                       <p className="text-sm font-medium text-foreground mt-1">
                         {getOrderDisplayName(order)}
