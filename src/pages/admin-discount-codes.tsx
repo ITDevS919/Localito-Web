@@ -7,12 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useRequireRole } from "@/hooks/useRequireRole";
-import { Plus, Loader2, Tag, Trash2, Edit } from "lucide-react";
+import { Plus, Loader2, Tag, Trash2, Edit, ChevronDown, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+interface BusinessOption {
+  id: string;
+  business_name: string;
+}
 
 interface DiscountCode {
   id: string;
@@ -27,6 +35,7 @@ interface DiscountCode {
   valid_from: string;
   valid_until?: string;
   is_active: boolean;
+  participating_business_ids?: string[];
 }
 
 export default function AdminDiscountCodesPage() {
@@ -45,11 +54,35 @@ export default function AdminDiscountCodesPage() {
     maxDiscountAmount: "",
     usageLimit: "",
     validUntil: "",
+    participatingBusinessIds: [] as string[],
   });
+  const [businesses, setBusinesses] = useState<BusinessOption[]>([]);
+  const [businessesLoading, setBusinessesLoading] = useState(false);
+  const [participatingOpen, setParticipatingOpen] = useState(false);
 
   useEffect(() => {
     fetchCodes();
   }, []);
+
+  useEffect(() => {
+    if (isDialogOpen && businesses.length === 0) {
+      setBusinessesLoading(true);
+      fetch(`${API_BASE_URL}/admin/businesses?limit=500&status=approved`, { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.data?.businesses)) {
+            setBusinesses(
+              data.data.businesses.map((b: { id: string; business_name: string }) => ({
+                id: b.id,
+                business_name: b.business_name || "Unnamed",
+              }))
+            );
+          }
+        })
+        .catch(() => {})
+        .finally(() => setBusinessesLoading(false));
+    }
+  }, [isDialogOpen]);
 
   const fetchCodes = async () => {
     try {
@@ -70,6 +103,14 @@ export default function AdminDiscountCodesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.participatingBusinessIds.length === 0) {
+      toast({
+        title: "Select businesses",
+        description: "Please select at least one participating business for this discount code",
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -86,6 +127,7 @@ export default function AdminDiscountCodesPage() {
           maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : null,
           usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : null,
           validUntil: formData.validUntil || null,
+          participatingBusinessIds: formData.participatingBusinessIds,
         }),
       });
 
@@ -122,7 +164,17 @@ export default function AdminDiscountCodesPage() {
       maxDiscountAmount: "",
       usageLimit: "",
       validUntil: "",
+      participatingBusinessIds: [],
     });
+  };
+
+  const toggleParticipatingBusiness = (businessId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      participatingBusinessIds: prev.participatingBusinessIds.includes(businessId)
+        ? prev.participatingBusinessIds.filter((id) => id !== businessId)
+        : [...prev.participatingBusinessIds, businessId],
+    }));
   };
 
   return (
@@ -258,6 +310,63 @@ export default function AdminDiscountCodesPage() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Participating Businesses *</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Select which businesses can accept this discount code. At least one required.
+                  </p>
+                  <Popover open={participatingOpen} onOpenChange={setParticipatingOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-between font-normal"
+                      >
+                        <span>
+                          {formData.participatingBusinessIds.length === 0
+                            ? "Select businesses..."
+                            : `${formData.participatingBusinessIds.length} business(es) selected`}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      {businessesLoading ? (
+                        <div className="p-4 flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <ScrollArea className="h-64">
+                          <div className="p-2 space-y-1">
+                            {businesses.map((b) => (
+                              <label
+                                key={b.id}
+                                className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer"
+                              >
+                                <Checkbox
+                                  checked={formData.participatingBusinessIds.includes(b.id)}
+                                  onCheckedChange={() => toggleParticipatingBusiness(b.id)}
+                                />
+                                <span className="text-sm truncate">{b.business_name}</span>
+                              </label>
+                            ))}
+                            {businesses.length === 0 && !businessesLoading && (
+                              <p className="text-sm text-muted-foreground p-2">No approved businesses found</p>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                  {formData.participatingBusinessIds.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {formData.participatingBusinessIds
+                        .map((id) => businesses.find((b) => b.id === id)?.business_name || id)
+                        .join(", ")}
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-2">
                   <Button
                     type="button"
@@ -340,6 +449,14 @@ export default function AdminDiscountCodesPage() {
                               : "No expiry"}
                           </p>
                         </div>
+                        {Array.isArray(code.participating_business_ids) && code.participating_business_ids.length > 0 && (
+                          <div className="col-span-2 md:col-span-4">
+                            <p className="text-muted-foreground">Participating businesses</p>
+                            <p className="font-medium text-sm">
+                              {code.participating_business_ids.length} business(es)
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

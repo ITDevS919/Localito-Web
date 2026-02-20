@@ -217,12 +217,24 @@ export default function CheckoutPage() {
 
     setValidatingDiscount(true);
     try {
-      const total = orderGroups.reduce((sum, group) => sum + group.subtotal, 0);
+      const total =
+        items.reduce((sum, i) => sum + i.price * i.quantity, 0) +
+        serviceItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      const businessIds = [
+        ...new Set([
+          ...items.map((i) => i.business_id),
+          ...serviceItems.map((i) => i.business_id),
+        ]),
+      ];
       const res = await fetch(`${API_BASE_URL}/discount-codes/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ code: discountCode.trim(), orderTotal: total }),
+        body: JSON.stringify({
+          code: discountCode.trim(),
+          orderTotal: total,
+          businessIds,
+        }),
       });
 
       const data = await res.json();
