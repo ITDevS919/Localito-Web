@@ -311,13 +311,25 @@ export default function CheckoutPage() {
   const serviceSubtotal = serviceItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const subtotal = orderGroups.reduce((sum, group) => sum + group.subtotal, 0) + serviceSubtotal;
 
-  // Get business IDs for services (for backward compatibility, check if all services are from one business)
-  const uniqueServiceBusinesses = new Set(serviceItems.map(item => item.business_id));
+  // All businesses that need a date/time (booking for services, pickup for products)
+  const allCheckoutBusinessIds = new Set([
+    ...orderGroups.map((g) => g.business_id),
+    ...serviceGroups.map((g) => g.business_id),
+  ]);
+  const checkoutBusinesses = Array.from(allCheckoutBusinessIds).map((businessId) => {
+    const orderGroup = orderGroups.find((g) => g.business_id === businessId);
+    const serviceGroup = serviceGroups.find((g) => g.business_id === businessId);
+    const hasProducts = !!orderGroup;
+    const hasServices = !!serviceGroup;
+    const durationMinutes = serviceGroup
+      ? Math.max(...serviceGroup.items.map((item) => item.duration_minutes))
+      : 30;
+    const businessName = orderGroup?.business_name || serviceGroup?.business_name || "Business";
+    return { businessId, businessName, hasProducts, hasServices, durationMinutes };
+  });
+
+  const uniqueServiceBusinesses = new Set(serviceItems.map((item) => item.business_id));
   const isSingleBusinessServices = uniqueServiceBusinesses.size === 1;
-  // const serviceBusinessId = isSingleBusinessServices ? serviceItems[0]?.business_id : "";
-  // const maxDuration = serviceItems.length > 0 
-  //   ? Math.max(...serviceItems.map(item => item.duration_minutes))
-  //   : 60;
   const discountAmount = appliedDiscount?.amount || 0;
   const pointsDiscount = pointsToRedeem || 0;
   const total = Math.max(0, subtotal - discountAmount - pointsDiscount);
@@ -349,28 +361,23 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Validate booking if services are in cart
+    // Validate date/time for all businesses (services = booking, products = pickup)
+    const missingSlots: string[] = [];
+    for (const { businessId, businessName, hasServices } of checkoutBusinesses) {
+      const booking = businessBookings[businessId];
+      const hasSlot = booking?.date && booking?.time;
+      const legacySlot = checkoutBusinesses.length === 1 && bookingDate && bookingTime;
+      if (!hasSlot && !legacySlot) {
+        missingSlots.push(`${businessName} (${hasServices ? "booking" : "pickup"})`);
+      }
+    }
+    if (missingSlots.length > 0) {
+      setError(`Please select a date and time for: ${missingSlots.join(", ")}`);
+      return;
+    }
+
+    // Lock service booking slots (product pickup slots are not locked)
     if (serviceItems.length > 0) {
-      // Check if we have bookings for all businesses with services
-      const missingBookings: string[] = [];
-      for (const businessId of uniqueServiceBusinesses) {
-        const booking = businessBookings[businessId];
-        if (!booking || !booking.date || !booking.time) {
-          // For backward compatibility, check single booking if all services are from one business
-          if (isSingleBusinessServices && bookingDate && bookingTime) {
-            // Use single booking, will be converted to per-business format
-            continue;
-          }
-          const businessName = serviceGroups.find(g => g.business_id === businessId)?.business_name || 'this business';
-          missingBookings.push(businessName);
-        }
-      }
-
-      if (missingBookings.length > 0) {
-        setError(`Please select a date and time for services from: ${missingBookings.join(', ')}`);
-        return;
-      }
-
       // Lock the booking slots before placing order
       setLockingSlot(true);
       try {
@@ -420,18 +427,13 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      // Prepare booking data: use per-business bookings if available, otherwise single booking for backward compatibility
-      let bookingData: any = {};
-      if (serviceItems.length > 0) {
-        if (Object.keys(businessBookings).length > 0) {
-          // Use per-business bookings
-          bookingData.businessBookings = businessBookings;
-        } else if (isSingleBusinessServices && bookingDate && bookingTime) {
-          // Backward compatibility: single booking for all services
-          bookingData.bookingDate = bookingDate;
-          bookingData.bookingTime = bookingTime;
-        }
-      }
+      // Send date/time for every business (booking for services, pickup for products)
+      const bookingData: Record<string, unknown> =
+        Object.keys(businessBookings).length > 0
+          ? { businessBookings }
+          : checkoutBusinesses.length === 1 && bookingDate && bookingTime
+            ? { bookingDate, bookingTime }
+            : {};
 
       const res = await fetch(`${API_BASE_URL}/orders`, {
         method: "POST",
@@ -451,17 +453,15 @@ export default function CheckoutPage() {
         throw new Error(data.message || "Failed to create order");
       }
 
-      // Show booking confirmation notification if services were booked
+      // Show confirmation with booking or pickup time
       if (serviceItems.length > 0) {
         if (Object.keys(businessBookings).length > 0) {
-          // Multiple businesses - show summary
           const bookingCount = Object.keys(businessBookings).length;
           toast({
             title: "Bookings Confirmed",
-            description: `Your ${bookingCount} service ${bookingCount > 1 ? 'bookings' : 'booking'} ${bookingCount > 1 ? 'have' : 'has'} been confirmed. You'll receive a confirmation email shortly.`,
+            description: `Your ${bookingCount} service ${bookingCount > 1 ? "bookings" : "booking"} ${bookingCount > 1 ? "have" : "has"} been confirmed. You'll receive a confirmation email shortly.`,
           });
         } else if (bookingDate && bookingTime) {
-          // Single business
           toast({
             title: "Booking Confirmed",
             description: `Your service is booked for ${new Date(bookingDate).toLocaleDateString("en-GB", {
@@ -470,6 +470,18 @@ export default function CheckoutPage() {
               month: "long",
               day: "numeric",
             })} at ${bookingTime}. You'll receive a confirmation email shortly.`,
+          });
+        }
+      } else if (items.length > 0 && Object.keys(businessBookings).length > 0) {
+        const first = Object.values(businessBookings)[0] as { date: string; time: string };
+        if (first?.date && first?.time) {
+          toast({
+            title: "Order Confirmed",
+            description: `Pickup: ${new Date(first.date).toLocaleDateString("en-GB", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })} at ${first.time}. You'll receive a confirmation email shortly.`,
           });
         }
       }
@@ -722,54 +734,55 @@ export default function CheckoutPage() {
               </CardContent>
             </Card>
 
-            {/* Booking Selection for Services */}
-            {serviceItems.length > 0 && (
+            {/* Date & time: booking for services, pickup for products */}
+            {checkoutBusinesses.length > 0 && (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    Select Booking Date & Time
+                    Select Date & Time
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {isSingleBusinessServices 
-                      ? "Please select a date and time for your service booking."
-                      : "Please select a date and time for each business's services."}
+                    Choose a booking time for services and a pickup time for products.
                   </p>
                 </div>
-                {serviceGroups.map((group) => {
-                  const businessBooking = businessBookings[group.business_id] || { date: "", time: "" };
-                  const groupMaxDuration = Math.max(...group.items.map(item => item.duration_minutes));
-                  
-                  return (
-                    <Card key={group.business_id} className="border-l-4 border-l-primary">
-                      <CardHeader>
-                        <CardTitle className="text-base">{group.business_name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {group.items.length} service{group.items.length > 1 ? 's' : ''} from this business
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <DateTimePicker
-                          businessId={group.business_id}
-                          durationMinutes={groupMaxDuration}
-                          onSelect={(date, time) => {
-                            setBusinessBookings(prev => ({
-                              ...prev,
-                              [group.business_id]: { date, time }
-                            }));
-                            // For backward compatibility, also set single booking if only one business
-                            if (isSingleBusinessServices) {
-                              setBookingDate(date);
-                              setBookingTime(time);
-                            }
-                          }}
-                          selectedDate={businessBooking.date}
-                          selectedTime={businessBooking.time}
-                        />
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {checkoutBusinesses.map(
+                  ({ businessId, businessName, hasProducts, hasServices, durationMinutes }) => {
+                    const businessBooking = businessBookings[businessId] || { date: "", time: "" };
+                    const label =
+                      hasProducts && hasServices
+                        ? "Products & services"
+                        : hasServices
+                          ? "Services"
+                          : "Product pickup";
+                    return (
+                      <Card key={businessId} className="border-l-4 border-l-primary">
+                        <CardHeader>
+                          <CardTitle className="text-base">{businessName}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{label}</p>
+                        </CardHeader>
+                        <CardContent>
+                          <DateTimePicker
+                            businessId={businessId}
+                            durationMinutes={durationMinutes}
+                            onSelect={(date, time) => {
+                              setBusinessBookings((prev) => ({
+                                ...prev,
+                                [businessId]: { date, time },
+                              }));
+                              if (checkoutBusinesses.length === 1) {
+                                setBookingDate(date);
+                                setBookingTime(time);
+                              }
+                            }}
+                            selectedDate={businessBooking.date}
+                            selectedTime={businessBooking.time}
+                          />
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                )}
               </div>
             )}
 
@@ -827,29 +840,50 @@ export default function CheckoutPage() {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {orderGroups.map((group) => (
-                  <div key={group.business_id} className="border-b pb-4 last:border-0">
-                    <div className="font-semibold mb-2">{group.business_name}</div>
-                    {group.items.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm text-muted-foreground mb-1">
-                        <span>
-                          {item.name} × {item.quantity}
-                        </span>
-                        <span>£{(item.price * item.quantity).toFixed(2)}</span>
+                {orderGroups.map((group) => {
+                  const businessBooking =
+                    businessBookings[group.business_id] ||
+                    (checkoutBusinesses.length === 1 && bookingDate && bookingTime
+                      ? { date: bookingDate, time: bookingTime }
+                      : null);
+                  return (
+                    <div key={group.business_id} className="border-b pb-4 last:border-0">
+                      <div className="font-semibold mb-2">{group.business_name}</div>
+                      {group.items.map((item) => (
+                        <div key={item.id} className="flex justify-between text-sm text-muted-foreground mb-1">
+                          <span>
+                            {item.name} × {item.quantity}
+                          </span>
+                          <span>£{(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      {businessBooking?.date && businessBooking?.time && (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          <div className="font-medium mb-1">Pickup:</div>
+                          <div>
+                            {new Date(businessBooking.date).toLocaleDateString("en-GB", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}{" "}
+                            at {businessBooking.time}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold mt-2">
+                        <span>Subtotal</span>
+                        <span>£{group.subtotal.toFixed(2)}</span>
                       </div>
-                    ))}
-                    <div className="flex justify-between font-semibold mt-2">
-                      <span>Subtotal</span>
-                      <span>£{group.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="mt-3 pt-3 border-t text-sm">
-                      <div className="font-medium mb-1">Pickup Location:</div>
-                      <div className="text-muted-foreground">
-                        Pick up at {group.business_name} store. Exact address will be provided in your order confirmation.
+                      <div className="mt-3 pt-3 border-t text-sm">
+                        <div className="font-medium mb-1">Pickup Location:</div>
+                        <div className="text-muted-foreground">
+                          Pick up at {group.business_name} store. Exact address will be provided in your order confirmation.
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 {serviceGroups.map((group) => {
                   const businessBooking = businessBookings[group.business_id] || 
@@ -926,21 +960,18 @@ export default function CheckoutPage() {
                   <p>You'll earn £{(total * 0.01).toFixed(2)} cashback (1%) on this order</p>
                 </div>
               )}
-              <Button 
-                className="w-full" 
-                onClick={handlePlaceOrder} 
+              <Button
+                className="w-full"
+                onClick={handlePlaceOrder}
                 disabled={
-                  placingOrder || 
-                  lockingSlot || 
-                  !formData.fullName || 
+                  placingOrder ||
+                  lockingSlot ||
+                  !formData.fullName ||
                   !formData.email ||
-                  (serviceItems.length > 0 && (
-                    // Check if all businesses with services have bookings
-                    Array.from(uniqueServiceBusinesses).some(businessId => {
-                      const booking = businessBookings[businessId];
-                      return !booking || !booking.date || !booking.time;
-                    }) && !(isSingleBusinessServices && bookingDate && bookingTime)
-                  ))
+                  (checkoutBusinesses.some(
+                    (b) => !businessBookings[b.businessId]?.date || !businessBookings[b.businessId]?.time
+                  ) &&
+                    !(checkoutBusinesses.length === 1 && bookingDate && bookingTime))
                 }
               >
                 {placingOrder || lockingSlot ? (
