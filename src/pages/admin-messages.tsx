@@ -34,6 +34,7 @@ import {
   type Message,
   type ChatRoom,
 } from "@/services/chatService";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -313,6 +314,28 @@ export default function AdminMessagesPage() {
         selectedRoom.type
       );
       setMessageText("");
+
+      // Notify recipient via backend (in-app + push). Recipient is customer or business.
+      const otherRole = selectedRoom.participantRoles?.[otherParticipant] ?? "business";
+      const recipientRole = otherRole === "customer" ? "customer" : "business";
+      try {
+        const notifRes = await fetchWithAuth("/notifications/on-new-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientUserId: otherParticipant,
+            recipientRole,
+            roomId: selectedRoom.id,
+            senderName: user.username || "Support",
+          }),
+        });
+        if (!notifRes.ok) {
+          const data = await notifRes.json().catch(() => ({}));
+          console.warn("[Messages] Notification on new message failed:", data.message || notifRes.status);
+        }
+      } catch (err: unknown) {
+        console.warn("[Messages] Notification on new message request failed:", err);
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {

@@ -16,8 +16,11 @@ import {
   type Message,
   type ChatRoom,
 } from "@/services/chatService";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useLocation } from "wouter";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function MessagesPage() {
   useRequireRole("customer", "/login/customer");
@@ -102,6 +105,50 @@ export default function MessagesPage() {
         selectedRoom.type
       );
       setMessageText("");
+
+<<<<<<< Updated upstream
+      // Notify recipient (business) via backend (in-app + push)
+      const recipientRole = "business";
+      try {
+        const notifRes = await fetchWithAuth("/notifications/on-new-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientUserId: otherParticipant,
+            recipientRole,
+            roomId: selectedRoom.id,
+            senderName: user.username || "Customer",
+          }),
+        });
+        if (!notifRes.ok) {
+          const data = await notifRes.json().catch(() => ({}));
+          console.warn("[Messages] Notification on new message failed:", data.message || notifRes.status);
+        }
+      } catch (err: unknown) {
+        console.warn("[Messages] Notification on new message request failed:", err);
+=======
+      // Notify recipient (in-app + push if they have Expo app token)
+      const recipientRole = (selectedRoom.participantRoles?.[otherParticipant] === "admin" ? "business" : selectedRoom.participantRoles?.[otherParticipant]) ?? (selectedRoom.type === "buyer-seller" ? "business" : "customer");
+      try {
+        const notifRes = await fetch(`${API_BASE_URL}/notifications/on-new-message`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientUserId: otherParticipant,
+            recipientRole: recipientRole === "admin" ? "business" : recipientRole,
+            roomId: selectedRoom.id,
+            senderName: user.username || "User",
+          }),
+        });
+        const data = await notifRes.json().catch(() => ({}));
+        if (!notifRes.ok || !data?.success) {
+          console.warn("[Messages] Notification on new message failed:", data?.message ?? notifRes.statusText);
+        }
+      } catch (err: unknown) {
+        console.warn("[Messages] Notification request failed:", err);
+>>>>>>> Stashed changes
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
