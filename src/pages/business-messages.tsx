@@ -16,8 +16,6 @@ import {
   type Message,
   type ChatRoom,
 } from "@/services/chatService";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function BusinessMessagesPage() {
@@ -84,27 +82,6 @@ export default function BusinessMessagesPage() {
       );
       setMessageText("");
 
-<<<<<<< Updated upstream
-      // Notify recipient (customer) via backend (in-app + push)
-      const recipientRole = "customer";
-      try {
-        const notifRes = await fetchWithAuth("/notifications/on-new-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipientUserId: otherParticipant,
-            recipientRole,
-            roomId: selectedRoom.id,
-            senderName: user.username || "Business",
-          }),
-        });
-        if (!notifRes.ok) {
-          const data = await notifRes.json().catch(() => ({}));
-          console.warn("[Messages] Notification on new message failed:", data.message || notifRes.status);
-        }
-      } catch (err: unknown) {
-        console.warn("[Messages] Notification on new message request failed:", err);
-=======
       // Notify recipient (in-app + push if they have Expo app token)
       const recipientRole = (selectedRoom.participantRoles?.[otherParticipant] === "admin" ? "business" : selectedRoom.participantRoles?.[otherParticipant]) ?? (selectedRoom.type === "buyer-seller" ? "customer" : "customer");
       try {
@@ -125,7 +102,6 @@ export default function BusinessMessagesPage() {
         }
       } catch (err: unknown) {
         console.warn("[BusinessMessages] Notification request failed:", err);
->>>>>>> Stashed changes
       }
     } catch (error) {
       console.error("Failed to send message:", error);

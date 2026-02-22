@@ -16,7 +16,6 @@ import {
   type Message,
   type ChatRoom,
 } from "@/services/chatService";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useLocation } from "wouter";
 
@@ -106,27 +105,6 @@ export default function MessagesPage() {
       );
       setMessageText("");
 
-<<<<<<< Updated upstream
-      // Notify recipient (business) via backend (in-app + push)
-      const recipientRole = "business";
-      try {
-        const notifRes = await fetchWithAuth("/notifications/on-new-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipientUserId: otherParticipant,
-            recipientRole,
-            roomId: selectedRoom.id,
-            senderName: user.username || "Customer",
-          }),
-        });
-        if (!notifRes.ok) {
-          const data = await notifRes.json().catch(() => ({}));
-          console.warn("[Messages] Notification on new message failed:", data.message || notifRes.status);
-        }
-      } catch (err: unknown) {
-        console.warn("[Messages] Notification on new message request failed:", err);
-=======
       // Notify recipient (in-app + push if they have Expo app token)
       const recipientRole = (selectedRoom.participantRoles?.[otherParticipant] === "admin" ? "business" : selectedRoom.participantRoles?.[otherParticipant]) ?? (selectedRoom.type === "buyer-seller" ? "business" : "customer");
       try {
@@ -147,7 +125,6 @@ export default function MessagesPage() {
         }
       } catch (err: unknown) {
         console.warn("[Messages] Notification request failed:", err);
->>>>>>> Stashed changes
       }
     } catch (error) {
       console.error("Failed to send message:", error);
