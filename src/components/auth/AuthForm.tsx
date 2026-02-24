@@ -30,6 +30,7 @@ export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) 
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const isSignup = variant === "signup";
   const title =
@@ -56,6 +57,13 @@ export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) 
       }
       if (username.length < 3) {
         setError("Username must be at least 3 characters");
+        return;
+      }
+
+      if (!acceptedTerms) {
+        setError(
+          "Please agree to the Terms & Conditions and our zero-tolerance policy for objectionable content before creating an account."
+        );
         return;
       }
     }
@@ -253,6 +261,29 @@ export function AuthForm({ variant, role, onSuccess, redirect }: AuthFormProps) 
               * At least one of Postcode or City is required for location-based search
             </p>
           </>
+        )}
+
+        {isSignup && (
+          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <input
+              id="acceptTerms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              disabled={loading}
+              className="mt-1 h-3.5 w-3.5 accent-primary"
+            />
+            <label htmlFor="acceptTerms" className="space-y-1">
+              <span>
+                By signing up, you agree to our{" "}
+                <Link href="/terms" className="text-primary hover:underline font-medium">
+                  Terms &amp; Conditions
+                </Link>{" "}
+                and understand there is zero tolerance for objectionable content, illegal goods/services, or abusive
+                behaviour.
+              </span>
+            </label>
+          </div>
         )}
 
         <Button type="submit" className="w-full" disabled={loading}>

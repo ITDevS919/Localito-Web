@@ -35,6 +35,8 @@ import {
   type ChatRoom,
 } from "@/services/chatService";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { containsObjectionableContent } from "@/lib/contentModeration";
+import { useToast } from "@/hooks/use-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -103,6 +105,7 @@ export default function AdminMessagesPage() {
   const [loadingBuyerSellerRooms, setLoadingBuyerSellerRooms] = useState(false);
   const [loadingBuyerSellerMessages, setLoadingBuyerSellerMessages] = useState(false);
   const [buyerSellerError, setBuyerSellerError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Initialize Firebase auth on mount
   useEffect(() => {
@@ -292,6 +295,16 @@ export default function AdminMessagesPage() {
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedRoom || !user || sending) return;
+
+    if (containsObjectionableContent(messageText)) {
+      toast({
+        variant: "destructive",
+        title: "Message blocked",
+        description:
+          "Your message appears to contain language that violates our content guidelines. Please edit it and try again.",
+      });
+      return;
+    }
 
     setSending(true);
     try {

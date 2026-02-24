@@ -16,6 +16,8 @@ import {
   type Message,
   type ChatRoom,
 } from "@/services/chatService";
+import { containsObjectionableContent } from "@/lib/contentModeration";
+import { useToast } from "@/hooks/use-toast";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function BusinessMessagesPage() {
@@ -27,6 +29,7 @@ export default function BusinessMessagesPage() {
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user) return;
@@ -57,8 +60,93 @@ export default function BusinessMessagesPage() {
     }
   }, [messages]);
 
+  const handleReportMessage = async (message: Message) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/content/report`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reportedUserId: message.senderId,
+          contentType: "message",
+          contentId: message.id,
+          contentSnapshot: message.text,
+          reason: "Reported from web business messages page",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        toast({
+          variant: "destructive",
+          title: "Report failed",
+          description: data?.message ?? "Unable to submit report right now.",
+        });
+      } else {
+        toast({
+          title: "Message reported",
+          description: "Thank you. We'll review this message and take action within 24 hours.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to report message:", err);
+      toast({
+        variant: "destructive",
+        title: "Report failed",
+        description: err?.message ?? "Unable to submit report right now.",
+      });
+    }
+  };
+
+  const handleBlockUser = async (blockedUserId: string) => {
+    if (!user || blockedUserId === user.id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/${blockedUserId}/block`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: "Blocked from web business messages page",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        toast({
+          variant: "destructive",
+          title: "Block failed",
+          description: data?.message ?? "Unable to block this user right now.",
+        });
+        return;
+      }
+
+      setMessages((prev) => prev.filter((m) => m.senderId !== blockedUserId));
+
+      toast({
+        title: "User blocked",
+        description: "This user has been blocked. Their future messages will no longer appear in your chat.",
+      });
+    } catch (err: any) {
+      console.error("Failed to block user:", err);
+      toast({
+        variant: "destructive",
+        title: "Block failed",
+        description: err?.message ?? "Unable to block this user right now.",
+      });
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedRoom || !user || sending) return;
+
+    if (containsObjectionableContent(messageText)) {
+      toast({
+        variant: "destructive",
+        title: "Message blocked",
+        description:
+          "Your message appears to contain language that violates our content guidelines. Please edit it and try again.",
+      });
+      return;
+    }
 
     setSending(true);
     try {
@@ -223,13 +311,34 @@ export default function BusinessMessagesPage() {
                                     {message.senderName}
                                   </p>
                                 )}
-                                <p className="text-sm">{message.text}</p>
+                                <p className="text-sm whitespace-pre-wrap">
+                                  {message.text}
+                                </p>
                                 <p className="text-xs mt-1 opacity-70">
                                   {new Date(message.timestamp).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
                                 </p>
+                                {!isOwn && (
+                                  <div className="mt-1 flex gap-2 text-[11px] text-muted-foreground">
+                                    <button
+                                      type="button"
+                                      className="hover:underline"
+                                      onClick={() => handleReportMessage(message)}
+                                    >
+                                      Report
+                                    </button>
+                                    <span>·</span>
+                                    <button
+                                      type="button"
+                                      className="hover:underline"
+                                      onClick={() => handleBlockUser(message.senderId)}
+                                    >
+                                      Block user
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
