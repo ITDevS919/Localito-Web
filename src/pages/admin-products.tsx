@@ -47,15 +47,18 @@ interface PendingService {
   business_name?: string; // Formerly retailer_name
   retailer_name?: string; // Legacy support
   created_at: string;
+  isApproved?: boolean;
 }
 
 export default function AdminProductsPage() {
   useRequireRole("admin", "/admin");
   const [products, setProducts] = useState<PendingProduct[]>([]);
   const [allProducts, setAllProducts] = useState<PendingProduct[]>([]);
+  const [allServices, setAllServices] = useState<PendingService[]>([]);
   const [services, setServices] = useState<PendingService[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAll, setLoadingAll] = useState(false);
+  const [loadingAllServices, setLoadingAllServices] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
   const [unapproving, setUnapproving] = useState<string | null>(null);
@@ -120,6 +123,25 @@ export default function AdminProductsPage() {
       setError(err.message);
     } finally {
       setLoadingAll(false);
+    }
+  };
+
+  const loadAllServices = async () => {
+    setLoadingAllServices(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/services/all?limit=100`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to load services");
+      }
+      setAllServices(data.data || []);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoadingAllServices(false);
     }
   };
 
@@ -197,6 +219,7 @@ export default function AdminProductsPage() {
         setDeleteDialogOpen(false);
         setSelectedServiceForDelete(null);
         loadData();
+        loadAllServices();
       } catch (err: any) {
         setError(err.message);
         setDeleteDialogOpen(false);
@@ -280,6 +303,7 @@ export default function AdminProductsPage() {
         setSelectedService(null);
         // Refresh data to ensure consistency
         loadData();
+        loadAllServices();
       } catch (err: any) {
         setError(err.message);
         setApproveDialogOpen(false);
@@ -315,6 +339,7 @@ export default function AdminProductsPage() {
           <TabsList>
             <TabsTrigger value="pending">Pending Approval</TabsTrigger>
             <TabsTrigger value="all" onClick={loadAllProducts}>All Products</TabsTrigger>
+            <TabsTrigger value="all-services" onClick={loadAllServices}>All Services</TabsTrigger>
           </TabsList>
 
           {/* Pending Tab */}
@@ -613,6 +638,126 @@ export default function AdminProductsPage() {
                             )}
                           </Button>
                         )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* All Services Tab */}
+          <TabsContent value="all-services" className="space-y-6">
+            {loadingAllServices && (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+
+            {!loadingAllServices && allServices.length === 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No services found</h3>
+                    <p className="text-muted-foreground">No services in the system yet.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!loadingAllServices && allServices.length > 0 && (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {allServices.map((service) => (
+                  <Card key={service.id} className="overflow-hidden">
+                    <div className="relative">
+                      <img
+                        src={service.images?.[0] || "/opengraph.jpg"}
+                        alt={service.name}
+                        className="w-full h-48 object-cover"
+                      />
+                      <Badge
+                        className={`absolute top-2 right-2 ${
+                          service.isApproved
+                            ? "bg-green-600 hover:bg-green-700"
+                            : "bg-yellow-600 hover:bg-yellow-700"
+                        }`}
+                      >
+                        {service.isApproved ? "Approved" : "Pending"}
+                      </Badge>
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="text-lg line-clamp-1">{service.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-2xl font-bold">£{Number(service.price || 0).toFixed(2)}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {service.durationMinutes} min
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {service.description || "No description"}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{service.category}</Badge>
+                          {(service.business_name || service.retailer_name) && (
+                            <Badge variant="outline" className="text-xs">
+                              {service.business_name || service.retailer_name}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs">
+                            {service.locationType === "onsite"
+                              ? "On-site"
+                              : service.locationType === "customer_address"
+                                ? "At Customer"
+                                : "Online"}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {!service.isApproved && (
+                            <Button
+                              className="w-full"
+                              onClick={() => {
+                                setSelectedService(service);
+                                setSelectedProduct(null);
+                                setApproveDialogOpen(true);
+                              }}
+                              disabled={isApprovingService && selectedService?.id === service.id}
+                            >
+                              {isApprovingService && selectedService?.id === service.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Approving...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                                  Approve
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            variant="destructive"
+                            className={!service.isApproved ? "w-full" : "w-full col-span-2"}
+                            onClick={() => handleDeleteServiceClick(service)}
+                            disabled={!!deleting}
+                          >
+                            {deleting === service.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
