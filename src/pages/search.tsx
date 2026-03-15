@@ -57,6 +57,9 @@ export default function SearchPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [sortBy, setSortBy] = useState("featured");
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
@@ -159,21 +162,25 @@ export default function SearchPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Fetch products when URL params or user location change
+  // Fetch products when URL params or user location change (page 1 only here; Load more fetches next page)
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
+    setProductsPage(1);
+    const fetchProducts = async (page: number, append: boolean) => {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
       try {
         const params = new URLSearchParams();
         if (query && query.trim()) {
           params.append("search", query.trim());
         }
-        // Use lat/lng/radius when "Use my location" is on; otherwise text location
         if (userCoords) {
           params.append("latitude", String(userCoords.lat));
           params.append("longitude", String(userCoords.lng));
-          params.append("radiusKm", "50"); // 50 km default radius for "near me"
+          params.append("radiusKm", "50");
         } else if (locationQuery && locationQuery.trim()) {
           params.append("location", locationQuery.trim());
           params.append("radiusKm", "0");
@@ -181,30 +188,24 @@ export default function SearchPage() {
         if (businessTypeCategoryId) {
           params.append("businessType", businessTypeCategoryId);
         }
+        params.set("limit", "24"); // Smaller first page for faster load
+        params.set("page", String(page));
 
-        const apiUrl = `${API_BASE_URL}/products${params.toString() ? `?${params.toString()}` : ""}`;
-        
+        const apiUrl = `${API_BASE_URL}/products?${params.toString()}`;
         const res = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
         });
-        
         if (!res.ok) {
           const errorText = await res.text();
-          console.error("[SearchPage] API error response:", errorText);
           throw new Error(`API error: ${res.status} ${res.statusText}`);
         }
-        
         const data = await res.json();
-        
-        if (!res.ok || !data.success) {
+        if (!data.success) {
           throw new Error(data.message || "Failed to load products");
         }
-        if (Array.isArray(data.data) && data.data.length > 0) {
-          setProducts(
-            data.data.map((p: any) => ({
+        const list = Array.isArray(data.data)
+          ? data.data.map((p: any) => ({
               id: p.id,
               name: p.name,
               price: parseFloat(p.price) || 0,
@@ -216,19 +217,26 @@ export default function SearchPage() {
               pickupTime: "30 mins",
               businessPostcode: p.postcode,
               businessCity: p.city,
-              retailerPostcode: p.postcode, // Legacy support
-              retailerCity: p.city, // Legacy support
+              retailerPostcode: p.postcode,
+              retailerCity: p.city,
             }))
-          );
+          : [];
+        if (data.pagination) {
+          setProductsTotal(data.pagination.total ?? list.length);
+        }
+        if (append) {
+          setProducts((prev) => [...prev, ...list]);
+          setProductsPage(page);
         } else {
-          setProducts([]);
+          setProducts(list);
+          setProductsPage(1);
         }
       } catch (err: any) {
-        console.error("[SearchPage] API error:", err);
-          setError(err.message);
-          setProducts([]);
+        setError(err?.message ?? "Failed to load");
+        if (!append) setProducts([]);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     };
 
@@ -242,8 +250,9 @@ export default function SearchPage() {
         if (businessTypeCategoryId) {
           params.append("businessType", businessTypeCategoryId);
         }
-        
-        const apiUrl = `${API_BASE_URL}/services${params.toString() ? `?${params.toString()}` : ""}`;
+        params.set("limit", "50");
+
+        const apiUrl = `${API_BASE_URL}/services?${params.toString()}`;
         const res = await fetch(apiUrl, {
           method: 'GET',
           headers: {
@@ -283,9 +292,52 @@ export default function SearchPage() {
       }
     };
 
-    fetchProducts();
+    fetchProducts(1, false);
     fetchServices();
   }, [query, locationQuery, location, API_BASE_URL, userCoords, businessTypeCategoryId]);
+
+  const loadMoreProducts = () => {
+    const nextPage = productsPage + 1;
+    setLoadingMore(true);
+    setError(null);
+    const params = new URLSearchParams();
+    if (query && query.trim()) params.append("search", query.trim());
+    if (userCoords) {
+      params.append("latitude", String(userCoords.lat));
+      params.append("longitude", String(userCoords.lng));
+      params.append("radiusKm", "50");
+    } else if (locationQuery && locationQuery.trim()) {
+      params.append("location", locationQuery.trim());
+      params.append("radiusKm", "0");
+    }
+    if (businessTypeCategoryId) params.append("businessType", businessTypeCategoryId);
+    params.set("limit", "24");
+    params.set("page", String(nextPage));
+    fetch(`${API_BASE_URL}/products?${params.toString()}`, { method: "GET", headers: { "Content-Type": "application/json" } })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success || !Array.isArray(data.data)) return;
+        const list = data.data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price) || 0,
+          business: p.business_name || "Business",
+          image: p.images?.[0] || "/opengraph.jpg",
+          category: p.category,
+          rating: p.averageRating || 0,
+          reviews: p.reviewCount || 0,
+          pickupTime: "30 mins",
+          businessPostcode: p.postcode,
+          businessCity: p.city,
+          retailerPostcode: p.postcode,
+          retailerCity: p.city,
+        }));
+        setProducts((prev) => [...prev, ...list]);
+        setProductsPage(nextPage);
+      })
+      .catch(() => setLoadingMore(false))
+      .finally(() => setLoadingMore(false));
+  };
 
   // Handle category toggle – update state and auto-apply to URL
   const handleCategoryToggle = (categoryId: string) => {
@@ -771,8 +823,17 @@ export default function SearchPage() {
 
               <TabsContent value="all" className="mt-0">
                 {(loading || loadingServices) && (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {[...Array(9)].map((_, i) => (
+                      <div key={i} className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
+                        <div className="aspect-square bg-muted" />
+                        <div className="p-4 space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                          <div className="h-6 bg-muted rounded w-1/4 mt-3" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {error && (
@@ -808,14 +869,24 @@ export default function SearchPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredAndSortedProducts.map((product, index) => (
-                          <ProductCard key={`product-${product.id}-${index}`} product={product} />
-                        ))}
-                        {filteredAndSortedServices.map((service, index) => (
-                          <ServiceCard key={`service-${service.id}-${index}`} service={service} />
-                        ))}
-                      </div>
+                      <>
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                          {filteredAndSortedProducts.map((product, index) => (
+                            <ProductCard key={`product-${product.id}-${index}`} product={product} />
+                          ))}
+                          {filteredAndSortedServices.map((service, index) => (
+                            <ServiceCard key={`service-${service.id}-${index}`} service={service} />
+                          ))}
+                        </div>
+                        {products.length < productsTotal && productsTotal > 0 && (
+                          <div className="flex justify-center mt-8">
+                            <Button variant="outline" onClick={loadMoreProducts} disabled={loadingMore}>
+                              {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                              Load more products
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}
@@ -823,8 +894,17 @@ export default function SearchPage() {
 
               <TabsContent value="products" className="mt-0">
                 {loading && (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
+                        <div className="aspect-square bg-muted" />
+                        <div className="p-4 space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                          <div className="h-6 bg-muted rounded w-1/4 mt-3" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {error && (
@@ -851,11 +931,21 @@ export default function SearchPage() {
                             </p>
                           </div>
                         ) : (
-                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {filteredAndSortedProducts.map((product, index) => (
-                              <ProductCard key={`product-${product.id}-${index}`} product={product} />
-                            ))}
-                          </div>
+                          <>
+                            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                              {filteredAndSortedProducts.map((product, index) => (
+                                <ProductCard key={`product-${product.id}-${index}`} product={product} />
+                              ))}
+                            </div>
+                            {products.length < productsTotal && productsTotal > 0 && (
+                              <div className="flex justify-center mt-8">
+                                <Button variant="outline" onClick={loadMoreProducts} disabled={loadingMore}>
+                                  {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                  Load more
+                                </Button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </>
                     )}

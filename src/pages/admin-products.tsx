@@ -65,6 +65,7 @@ export default function AdminProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<PendingProduct | null>(null);
   const [selectedService, setSelectedService] = useState<PendingService | null>(null);
+  const [selectedServiceForDelete, setSelectedServiceForDelete] = useState<PendingService | null>(null);
   const [isApprovingService, setIsApprovingService] = useState(false);
 
   useEffect(() => {
@@ -169,10 +170,43 @@ export default function AdminProductsPage() {
 
   const handleDeleteClick = (product: PendingProduct) => {
     setSelectedProduct(product);
+    setSelectedServiceForDelete(null);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteServiceClick = (service: PendingService) => {
+    setSelectedServiceForDelete(service);
+    setSelectedProduct(null);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
+    if (selectedServiceForDelete) {
+      setDeleting(selectedServiceForDelete.id);
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/services/${selectedServiceForDelete.id}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "Failed to delete service");
+        }
+
+        setDeleteDialogOpen(false);
+        setSelectedServiceForDelete(null);
+        loadData();
+      } catch (err: any) {
+        setError(err.message);
+        setDeleteDialogOpen(false);
+        setSelectedServiceForDelete(null);
+      } finally {
+        setDeleting(null);
+      }
+      return;
+    }
+
     if (!selectedProduct) return;
 
     setDeleting(selectedProduct.id);
@@ -409,23 +443,43 @@ export default function AdminProductsPage() {
                                    service.locationType === 'customer_address' ? 'At Customer' : 'Online'}
                                 </Badge>
                               </div>
-                              <Button
-                                className="w-full"
-                                onClick={() => handleApproveServiceClick(service)}
-                                disabled={isApprovingService && selectedService?.id === service.id}
-                              >
-                                {isApprovingService && selectedService?.id === service.id ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Approving...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                    Approve Service
-                                  </>
-                                )}
-                              </Button>
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  className="w-full"
+                                  onClick={() => handleApproveServiceClick(service)}
+                                  disabled={isApprovingService && selectedService?.id === service.id}
+                                >
+                                  {isApprovingService && selectedService?.id === service.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Approving...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Approve
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  className="w-full"
+                                  onClick={() => handleDeleteServiceClick(service)}
+                                  disabled={!!deleting}
+                                >
+                                  {deleting === service.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -630,12 +684,24 @@ export default function AdminProductsPage() {
       </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) {
+          setSelectedProduct(null);
+          setSelectedServiceForDelete(null);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product Permanently?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {selectedServiceForDelete ? "Delete Service Permanently?" : "Delete Product Permanently?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete <strong>{selectedProduct?.name}</strong>? This action cannot be undone. The product and all associated data will be removed from the system.
+              Are you sure you want to permanently delete{" "}
+              <strong>{selectedServiceForDelete?.name ?? selectedProduct?.name}</strong>? This action cannot be undone.{" "}
+              {selectedServiceForDelete
+                ? "The service and all associated data will be removed from the system."
+                : "The product and all associated data will be removed from the system."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

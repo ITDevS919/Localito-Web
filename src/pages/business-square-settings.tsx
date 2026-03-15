@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle2, XCircle, Link2, Unlink, TestTube, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Link2, Unlink, AlertCircle } from "lucide-react";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,8 +23,8 @@ export default function BusinessSquareSettingsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<SquareStatus | null>(null);
-  const [testing, setTesting] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [connectingOAuth, setConnectingOAuth] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [formData, setFormData] = useState({
     accessToken: "",
@@ -58,50 +58,11 @@ export default function BusinessSquareSettingsPage() {
     }
   };
 
-  const handleTestConnection = async () => {
-    if (!status?.connected) {
-      toast({
-        title: "Not Connected",
-        description: "Please connect your Square account first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setTesting(true);
+  const handleConnectWithSquareOAuth = () => {
+    setConnectingOAuth(true);
     setError(null);
-    try {
-      const res = await fetch(`${API_BASE_URL}/business/square/test`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Connection test failed");
-      }
-
-      if (data.data.valid) {
-        toast({
-          title: "Connection Test Successful",
-          description: "Your Square account is connected and working correctly",
-        });
-      } else {
-        toast({
-          title: "Connection Test Failed",
-          description: data.data.message || "Unable to verify Square connection",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      setError(err.message);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
-    } finally {
-      setTesting(false);
-    }
+    // Backend will redirect to Square, then back to dashboard
+    window.location.href = `${API_BASE_URL}/business/square/oauth/start`;
   };
 
   const handleConnect = async () => {
@@ -243,6 +204,25 @@ export default function BusinessSquareSettingsPage() {
                     <p className="text-sm text-muted-foreground">
                       Connect your Square account to enable stock synchronization
                     </p>
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        onClick={handleConnectWithSquareOAuth}
+                        disabled={connectingOAuth}
+                      >
+                        {connectingOAuth ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            Redirecting to Square...
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="mr-2 h-3 w-3" />
+                            Connect with Square (OAuth)
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}
@@ -250,24 +230,6 @@ export default function BusinessSquareSettingsPage() {
 
             {status?.connected && (
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleTestConnection}
-                  disabled={testing}
-                  size="sm"
-                >
-                  {testing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <TestTube className="mr-2 h-4 w-4" />
-                      Test Connection
-                    </>
-                  )}
-                </Button>
                 <Button
                   variant="destructive"
                   onClick={handleDisconnect}

@@ -1,5 +1,23 @@
+import { useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
+
+// Preconnect to API origin so first request is faster
+function useApiPreconnect() {
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const origin = apiUrl.replace(/\/api\/?$/, "");
+    if (!origin.startsWith("http")) return;
+    let link = document.querySelector(`link[rel="preconnect"][href="${origin}"]`);
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "preconnect";
+      link.href = origin;
+      (link as HTMLLinkElement).crossOrigin = "anonymous";
+      document.head.appendChild(link);
+    }
+  }, []);
+}
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -157,6 +175,7 @@ function Router() {
 }
 
 function App() {
+  useApiPreconnect();
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

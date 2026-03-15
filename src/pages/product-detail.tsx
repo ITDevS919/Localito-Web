@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { MessageCircle } from "lucide-react";
 import { startChatWithBusiness } from "@/utils/chatHelpers";
 import { Badge } from "@/components/ui/badge";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -79,8 +80,19 @@ export default function ProductDetailPage() {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [zoomedImageIndex, setZoomedImageIndex] = useState<number | null>(null);
+  const [zoomedImageLoaded, setZoomedImageLoaded] = useState(false);
+  const [zoomedImageError, setZoomedImageError] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Resolve image URL; Cloudinary gets CDN transform, API images use ?w=1200
+  const getImageUrl = (img: string | undefined, index?: number): string => {
+    if (!img) return product?.id && index != null ? `${(import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "")}/api/products/${product.id}/image/${index}?w=1200` : "/opengraph.jpg";
+    if (img.includes("res.cloudinary.com")) return getOptimizedImageUrl(img, { forDetail: true });
+    if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:")) return img;
+    const base = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
+    return base + (img.startsWith("/") ? img : `/${img}`);
+  };
 
   const businessSlug = product?.business_username || product?.businessId || product?.retailerId;
   const businessId = product?.businessId || product?.retailerId;
@@ -220,6 +232,12 @@ export default function ProductDetailPage() {
     };
     fetchProduct();
   }, [productId]);
+
+  // Reset zoom image state when switching to another image
+  useEffect(() => {
+    setZoomedImageLoaded(false);
+    setZoomedImageError(false);
+  }, [zoomedImageIndex]);
 
   // Keyboard navigation for zoomed image
   useEffect(() => {
@@ -459,7 +477,7 @@ export default function ProductDetailPage() {
                   <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <img
-                  src={imageError ? "/opengraph.jpg" : (product.images?.[0] || "/opengraph.jpg")}
+                  src={imageError ? "/opengraph.jpg" : getImageUrl(product.images?.[0], 0)}
                   alt={product.name}
                   className="absolute inset-0 h-full w-full object-cover"
                   loading="lazy"
@@ -479,7 +497,7 @@ export default function ProductDetailPage() {
                     onClick={() => setZoomedImageIndex(idx)}
                   >
                     <img
-                      src={img}
+                      src={getImageUrl(img, idx)}
                       alt={`${product.name}-${idx}`}
                       className="h-full w-full object-cover block"
                       loading="lazy"
@@ -747,17 +765,40 @@ export default function ProductDetailPage() {
         )}
 
         {/* Image Zoom Modal */}
-        <Dialog open={zoomedImageIndex !== null} onOpenChange={(open) => !open && setZoomedImageIndex(null)}>
+        <Dialog open={zoomedImageIndex !== null} onOpenChange={(open) => {
+          if (!open) {
+            setZoomedImageIndex(null);
+            setZoomedImageLoaded(false);
+            setZoomedImageError(false);
+          }
+        }}>
           <DialogContent className="max-w-7xl w-full h-full max-h-[90vh] p-0 bg-black/95 border-none">
-            <div className="relative w-full h-full flex items-center justify-center">
+            <div className="relative w-full h-full flex items-center justify-center min-h-[50vh]">
               {zoomedImageIndex !== null && product?.images && product.images.length > 0 && (
                 <>
+                  {!zoomedImageLoaded && !zoomedImageError && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-12 w-12 animate-spin text-white/80" />
+                    </div>
+                  )}
                   <img
-                    src={product.images[zoomedImageIndex] || "/opengraph.jpg"}
+                    src={getImageUrl(product.images[zoomedImageIndex], zoomedImageIndex)}
                     alt={`${product.name} - Image ${zoomedImageIndex + 1}`}
-                    className="max-w-full max-h-[90vh] object-contain"
+                    className={`max-w-full max-h-[90vh] object-contain ${!zoomedImageLoaded && !zoomedImageError ? "invisible" : ""}`}
+                    onLoad={() => {
+                      setZoomedImageLoaded(true);
+                      setZoomedImageError(false);
+                    }}
+                    onError={() => {
+                      setZoomedImageError(true);
+                      setZoomedImageLoaded(false);
+                    }}
                   />
-                  
+                  {zoomedImageError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+                      <img src="/opengraph.jpg" alt="Placeholder" className="max-w-full max-h-[90vh] object-contain" />
+                    </div>
+                  )}
                   {/* Navigation Arrows */}
                   {product.images.length > 1 && (
                     <>
